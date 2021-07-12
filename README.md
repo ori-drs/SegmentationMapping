@@ -34,13 +34,13 @@ Tested on
 * Jetson Xavier: Around 4Hz
 
 ## Dependencies
-ROS: Tested on Kinetic + Ubuntu 16.04, Melodic + Ubuntu 18.04
+ROS: Tested on Noetic + Ubuntu 20.04
 
 Neural Network: 
-* `tensorflow-gpu-1.8.0` 
-* `tensorrt4`
-* `cuda-9.0`,
-* `cudnn-7`
+* `tensorflow-gpu-2.5.0` 
+* `tensorrt` 
+* `cuda-11.4`,
+* `cudnn-8.2.1`
 
 Python thirdparty: 
 * [`python-pcl`](https://github.com/strawlab/python-pcl) 
