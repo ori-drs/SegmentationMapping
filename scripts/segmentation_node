@@ -62,7 +62,7 @@ class SegmentationNode:
         self.input_rgb_img_ = message_filters.Subscriber('~color_topic',
                                                          Image,  queue_size=5)
 
-        self.input_lidar_ = message_filters.Subscriber('/velodyne_points', PointCloud2, queue_size=1)
+        self.input_lidar_ = message_filters.Subscriber(rospy.get_param("~lidar_topic", '/velodyne_points'), PointCloud2, queue_size=1)
         ts = message_filters.ApproximateTimeSynchronizer([self.input_rgb_img_, self.input_lidar_], 50, 0.04)
         ts.registerCallback(self.callback)
 
