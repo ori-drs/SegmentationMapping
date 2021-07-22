@@ -3,6 +3,7 @@
 
 
 # ros
+from scipy.ndimage.measurements import label
 import rospy
 import ros_numpy
 import message_filters
@@ -10,12 +11,13 @@ from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import Float32MultiArray, MultiArrayLayout, MultiArrayDimension
 from SegmentationMapping.msg import ImageLabelDistribution
+from pprint import pprint
 
 # map label to color
 from label2color import label_to_color, background
 from NeuralNetConfigs import NeuralNetConfigs
 # visualize pcl
-#from helper import publish_pcl_pc2_label
+from helper import publish_pcl_pc2_label
 
 import cv2, time
 import numpy as np
@@ -34,6 +36,10 @@ tf.disable_v2_behavior()
 # debug
 import pdb
 
+# Extra
+import PIL
+import time
+
 
 
 class SegmentationNode:
@@ -41,6 +47,7 @@ class SegmentationNode:
 
         rospy.init_node('~', anonymous=True)
         
+        # Load the network configurations into a tuple
         self.network_config = NeuralNetConfigs(rospy.get_param("~neural_net_graph"),\
                                                rospy.get_param("~num_classes"),\
                                                rospy.get_param("~network_image_input_tensor"),\
@@ -48,10 +55,19 @@ class SegmentationNode:
                                                rospy.get_param("~neural_net_input_width"),\
                                                rospy.get_param("~neural_net_input_height"), \
                                                rospy.get_param("~network_label_output_tensor"),\
-                                               rospy.get_param("~network_distribution_output_tensor"))
+                                               rospy.get_param("~network_distribution_output_tensor"),\
+                                               rospy.get_param("~enable_colored_labeling"))
         print(self.network_config)
+        
+        # Initialize the neural network
         self.tf_init()
-
+        
+        
+        # Creating a topic to which colored label topic is output
+        if self.network_config.enable_colored_labeling:
+            self.colored_img_pub = rospy.Publisher("/colored_label_topic",
+                                                    Image, queue_size=10)
+        
         self.labeled_img_pub = rospy.Publisher("~label_topic",
                                                Image, queue_size=1)
         self.distribution_pub = rospy.Publisher("~distribution_topic",
@@ -98,7 +114,7 @@ class SegmentationNode:
         config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=config)
         self.y, = tf.import_graph_def(self.graph_def, return_elements=[self.network_config.label_output_tensor], name='')
-        self.G = tf.get_default_graph() 
+        self.G = tf.get_default_graph()
         self.x = self.G.get_tensor_by_name(self.network_config.image_input_tensor)
         
         self.dist = self.G.get_tensor_by_name(self.network_config.distribution_output_tensor)
@@ -107,8 +123,8 @@ class SegmentationNode:
 
 
     def publish_label_and_distribution(self, labeled_img, distribution, header, lidar_header=None):
-        #now  = rospy.Time.now()
-        #rospy.loginfo("Going to publish at time %i %i\n\n", now.secs, now.nsecs)
+        now  = rospy.Time.now()
+        rospy.loginfo("Going to publish at time %i %i\n\n", now.secs, now.nsecs)
         
         label_msg = self.bridge.cv2_to_imgmsg(labeled_img, encoding="mono8")
         label_msg.header = header
@@ -158,13 +174,38 @@ class SegmentationNode:
         rgb = np.expand_dims(rgb, axis=0)
         
         label_out, dist_out = self.sess.run([self.y, self.dist], feed_dict={self.x: rgb})
-        
+
         now  = rospy.Time.now()
 
         dist_out = dist_out[0, :, :, :]
         label_out = label_out[0, :, : ].astype(np.uint8)
         rospy.loginfo("after segmentation time %i %i", now.secs, now.nsecs )
         
+        
+        # Generating colored output
+        # start_time = time.time()
+        if self.network_config.enable_colored_labeling:
+            colored_label_out = np.zeros(shape=(label_out.shape[0], label_out.shape[1], 3))
+            for i in range(len(colored_label_out)):
+                for j in range(len(colored_label_out[i])):
+                    colored_label_out[i][j] = np.array(label_to_color[label_out[i][j]]) # convert labels into color
+            colored_label_out = colored_label_out.astype(np.uint8) # turn into integer
+            # end_time = time.time()
+            # print("TIME TAKEN: ", end_time - start_time)
+            image = PIL.Image.fromarray(colored_label_out, 'RGB')
+            image_msg = Image()
+            image_msg.header.stamp = rospy.Time.now()
+            image_msg.height = image.height
+            image_msg.width = image.width
+            image_msg.encoding = 'rgb8'
+            image_msg.is_bigendian = False
+            image_msg.step = 3 * image.width
+            image_msg.data = np.array(image).tobytes()
+            self.colored_img_pub.publish(image_msg)
+        
+        
+        
+
         '''
         dist_exp = np.exp(dist_out)
         dist_class = dist_exp
