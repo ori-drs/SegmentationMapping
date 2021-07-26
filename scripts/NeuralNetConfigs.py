@@ -7,4 +7,4 @@ NeuralNetConfigs = namedtuple("NeuralNetConfigs", "path \
                                                    input_height \
                                                    label_output_tensor \
                                                    distribution_output_tensor \
-                                                   ")
+                                                   enable_colored_labeling")
