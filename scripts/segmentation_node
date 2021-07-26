@@ -17,7 +17,7 @@ from pprint import pprint
 from label2color import label_to_color, background
 from NeuralNetConfigs import NeuralNetConfigs
 # visualize pcl
-from helper import publish_pcl_pc2_label
+#from helper import publish_pcl_pc2_label
 
 import cv2, time
 import numpy as np
@@ -56,7 +56,7 @@ class SegmentationNode:
                                                rospy.get_param("~neural_net_input_height"), \
                                                rospy.get_param("~network_label_output_tensor"),\
                                                rospy.get_param("~network_distribution_output_tensor"),\
-                                               rospy.get_param("~enable_colored_labeling"))
+                                               rospy.get_param("~enable_colored_labeling", False))
         print(self.network_config)
         
         # Initialize the neural network
@@ -75,20 +75,15 @@ class SegmentationNode:
         self.distribution_at_lidar_time_pub = rospy.Publisher("~distribution_at_lidar_time_topic",
                                                               ImageLabelDistribution, queue_size=1)
         #self.sub = rospy.Subscriber('~color_topic', Image, self.callback)
-        self.input_rgb_img_ = message_filters.Subscriber('~color_topic',
-                                                         Image,  queue_size=5)
-
-        self.input_lidar_ = message_filters.Subscriber(rospy.get_param("~lidar_topic", '/velodyne_points'), PointCloud2, queue_size=1)
-        ts = message_filters.ApproximateTimeSynchronizer([self.input_rgb_img_, self.input_lidar_], 50, 0.04)
-        ts.registerCallback(self.callback)
-
+        self.input_rgb_img_ = rospy.Subscriber('~color_topic',
+                                                         Image,  self.callback, queue_size=5)
         
         self.skip_img_freq = rospy.get_param('~skip_input_img_freq')
         self.counter = 0
         self.bridge = CvBridge()
         
 
-    def callback(self, img_msg, lidar_msg):        
+    def callback(self, img_msg):        
         print("segmentaion call back")
         if self.counter % self.skip_img_freq != 0:
             self.counter += 1
@@ -96,12 +91,12 @@ class SegmentationNode:
         else:
             self.counter += 1
         now  = rospy.Time.now()
-        rospy.loginfo("New callback time %i %i, img_time: %i %i, depth_time %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs, lidar_msg.header.stamp.secs, lidar_msg.header.stamp.nsecs )
+        rospy.loginfo("New callback time %i %i, img_time: %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs )
         #rospy.loginfo("New callback time %i %i, img_time: %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs )
         original_img = self.bridge.imgmsg_to_cv2(img_msg , desired_encoding="rgb8")
         #original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         labeled_img, distribution = self.infer(original_img)
-        self.publish_label_and_distribution(labeled_img, distribution, img_msg.header, lidar_msg.header)
+        self.publish_label_and_distribution(labeled_img, distribution, img_msg.header)
         
     def tf_init(self):
         print("open graph..")
