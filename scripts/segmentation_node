@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/yemika/Public/anaconda3/envs/tensorflow_env/bin/python
 
 
 
@@ -12,6 +12,9 @@ from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import Float32MultiArray, MultiArrayLayout, MultiArrayDimension
 from SegmentationMapping.msg import ImageLabelDistribution
 from pprint import pprint
+import segmentation_models as sm
+sm.set_framework('tf.keras')
+from matplotlib import pyplot as plt
 
 # map label to color
 from label2color import label_to_color, background
@@ -30,8 +33,9 @@ if sys.version_info[0] < 3:
 else:
     import queue
 
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
+# import tensorflow.compat.v1 as tf
+# tf.disable_v2_behavior()
     
 # debug
 import pdb
@@ -39,7 +43,7 @@ import pdb
 # Extra
 import PIL
 import time
-
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'       # disables GPU usage (uses CPU instead)
 
 
 class SegmentationNode:
@@ -58,7 +62,7 @@ class SegmentationNode:
                                                rospy.get_param("~network_distribution_output_tensor"),\
                                                rospy.get_param("~enable_colored_labeling", False))
         print(self.network_config)
-        
+
         # Initialize the neural network
         self.tf_init()
         
@@ -81,6 +85,36 @@ class SegmentationNode:
         self.skip_img_freq = rospy.get_param('~skip_input_img_freq')
         self.counter = 0
         self.bridge = CvBridge()
+
+        self.lo = np.ones(shape=(480, 640)).astype(np.uint8)
+        self.do = np.zeros(shape=(480, 640, 21)).astype(np.float64)
+        for i in range(len(self.do)):
+            for j in range(len(self.do[i])):
+                self.do[i][j][1] = 1
+        
+        self.mapping_dict = {
+            0: 2,
+            1: 3,
+            2: 6,
+            3: 4,
+            4: 4,
+            5: 10,
+            6: 5,
+            7: 7,
+            8: 8,
+            9: 9,
+            10: 13,
+            11: 12,
+            12: 1,
+            13: 11,
+            14: 2,
+            15: 0,
+            16: 2,
+            17: 4,
+            18: 0,
+            19: 4,
+            20: 4
+        }
         
 
     def callback(self, img_msg):        
@@ -92,29 +126,51 @@ class SegmentationNode:
             self.counter += 1
         now  = rospy.Time.now()
         rospy.loginfo("New callback time %i %i, img_time: %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs )
-        #rospy.loginfo("New callback time %i %i, img_time: %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs )
         original_img = self.bridge.imgmsg_to_cv2(img_msg , desired_encoding="rgb8")
         #original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
+        s_t = time.time()
         labeled_img, distribution = self.infer(original_img)
+        e_t = time.time()
+        print(f"Prediction time: {e_t - s_t} s")
         self.publish_label_and_distribution(labeled_img, distribution, img_msg.header)
         
     def tf_init(self):
-        print("open graph..")
-        with tf.gfile.GFile(self.network_config.path, 'rb') as f:
-            self.graph_def = tf.GraphDef()
-            self.graph_def.ParseFromString(f.read())
-        print("open graph complete")
+        # print("open graph..")
+        # with tf.gfile.GFile(self.network_config.path, 'rb') as f:
+        #     self.graph_def = tf.GraphDef()
+        #     self.graph_def.ParseFromString(f.read())
+        # print("open graph complete")
 
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=config)
-        self.y, = tf.import_graph_def(self.graph_def, return_elements=[self.network_config.label_output_tensor], name='')
-        self.G = tf.get_default_graph()
-        self.x = self.G.get_tensor_by_name(self.network_config.image_input_tensor)
+        # config = tf.ConfigProto()
+        # config.gpu_options.allow_growth = True
+        # self.sess = tf.Session(config=config)
+        # self.y, = tf.import_graph_def(self.graph_def, return_elements=[self.network_config.label_output_tensor], name='')
+        # self.G = tf.get_default_graph()
+        # self.x = self.G.get_tensor_by_name(self.network_config.image_input_tensor)
         
-        self.dist = self.G.get_tensor_by_name(self.network_config.distribution_output_tensor)
-        tf.global_variables_initializer().run(session=self.sess)
-        print("Tf init finish")
+        # self.dist = self.G.get_tensor_by_name(self.network_config.distribution_output_tensor)
+        # tf.global_variables_initializer().run(session=self.sess)
+        # print("Tf init finish")
+
+        print("Initializing the neural network...")
+        # self.model = sm.Unet('mobilenet', encoder_weights='imagenet', classes=21, encoder_freeze=True)
+        # self.model.compile(optimizer='adam', loss='categorical_crossentropy')    # compile the model
+        # print("Loading weights...")
+        # self.model.load_weights(self.network_config.path)
+        # print("Weights loaded!")
+
+        self.model = sm.Unet('mobilenet', encoder_weights='imagenet', classes=21, encoder_freeze=True)
+        self.model.load_weights(self.network_config.path)
+        
+        # Predict some random image to load the necessary libraries
+        x = cv2.imread("/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/data/train/images/image4914.png", cv2.IMREAD_COLOR)          # read the image as BGR
+        B, G, R = cv2.split(x)                          # split into 3 channels
+        x = cv2.merge([R, G, B])                        # convert into RGB
+        x = x / 255.0                                   # normalize
+        x = x.astype(np.float32)
+        x = x[None, :]
+        self.model.predict(x)
+        print("Network initialization finished")
 
 
     def publish_label_and_distribution(self, labeled_img, distribution, header, lidar_header=None):
@@ -151,42 +207,47 @@ class SegmentationNode:
         #    self.distribution_at_lidar_time_pub.publish(distribution_msg)
 
         now  = rospy.Time.now()
-        rospy.loginfo("End callabck at time %i %i\n\n", now.secs, now.nsecs)
+        rospy.loginfo("End callback at time %i %i\n\n", now.secs, now.nsecs)
 
     def infer(self, rgb_img):
-
+        
         num_class = self.network_config.num_classes
 
-        #if rgb_img.shape[0] != self.network_config.input_height or \
-        #   rgb_img.shape[1] != self.network_config.input_width:
-        #    rgb = cv2.resize(rgb_img, \
-        #                     dsize=(self.network_config.input_width, self.network_config.input_height),\
-        #                     interpolation=cv2.INTER_CUBIC)
-        #else:
-        #    rgb = rgb_img
-        
-        rgb = rgb_img 
-        rgb = np.expand_dims(rgb, axis=0)
-        
-        label_out, dist_out = self.sess.run([self.y, self.dist], feed_dict={self.x: rgb})
+        if rgb_img.shape[0] != self.network_config.input_height or \
+          rgb_img.shape[1] != self.network_config.input_width:
+           rgb = cv2.resize(rgb_img, \
+                            dsize=(self.network_config.input_width, self.network_config.input_height),\
+                            # (480, 640), \
+                            interpolation=cv2.INTER_CUBIC)
+        else:
+           rgb = rgb_img
+
+        # rgb = rgb_img
+
+        # rgb = np.expand_dims(rgb, axis=0)
+        rgb = rgb[None, :]
+        rgb = rgb / 255.
+
+        # label_out, dist_out = self.sess.run([self.y, self.dist], feed_dict={self.x: rgb})
+        preds = self.model.predict(rgb)
+        dist_out = np.squeeze(preds)
+        label_out = np.argmax(dist_out, axis=2)
+        dist_out = dist_out.astype(np.float64)
+        label_out = label_out.astype(np.uint8)
 
         now  = rospy.Time.now()
 
-        dist_out = dist_out[0, :, :, :]
-        label_out = label_out[0, :, : ].astype(np.uint8)
+        # dist_out = dist_out[0, :, :, :]
+        # label_out = label_out[0, :, : ].astype(np.uint8)
         rospy.loginfo("after segmentation time %i %i", now.secs, now.nsecs )
         
-        
         # Generating colored output
-        # start_time = time.time()
         if self.network_config.enable_colored_labeling:
             colored_label_out = np.zeros(shape=(label_out.shape[0], label_out.shape[1], 3))
             for i in range(len(colored_label_out)):
                 for j in range(len(colored_label_out[i])):
                     colored_label_out[i][j] = np.array(label_to_color[label_out[i][j]]) # convert labels into color
             colored_label_out = colored_label_out.astype(np.uint8) # turn into integer
-            # end_time = time.time()
-            # print("TIME TAKEN: ", end_time - start_time)
             image = PIL.Image.fromarray(colored_label_out, 'RGB')
             image_msg = Image()
             image_msg.header.stamp = rospy.Time.now()
@@ -197,7 +258,6 @@ class SegmentationNode:
             image_msg.step = 3 * image.width
             image_msg.data = np.array(image).tobytes()
             self.colored_img_pub.publish(image_msg)
-        
         
         
 

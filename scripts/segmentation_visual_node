@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 
 
@@ -28,7 +28,8 @@ if sys.version_info[0] < 3:
 else:
     import queue
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
     
 # debug
 import pdb

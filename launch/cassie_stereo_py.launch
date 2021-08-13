@@ -16,14 +16,18 @@
 
   <node pkg="SegmentationMapping" type="segmentation_node" name="segmentation_node" output="log" required="true">
     <!--<param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/optimized_mobilenet_const_nclt_2019_06_11.pb"/>  -->
-    <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/mobilenet_nclt/optimized_graph_mobilenet_trt32_2019-06-15.pb"/> 
+    <!-- <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/mobilenet_nclt/optimized_graph_mobilenet_trt32_2019-06-15.pb"/>  -->
+    <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/extended_nclt/model_backup_4.hdf5"/>
+    <!-- <param name="neural_net_graph" type="str" value="/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/saved_models/cce_jaccard_loss/cce_jaccard_model_17.hdf5"/> -->
     <param name="network_image_input_tensor" type="str" value="network/input/Placeholder:0"/>
     <param name="network_distribution_output_tensor" type="str" value="network/output/ClassDistribution:0"/>
     <param name="network_label_output_tensor" type="str" value="network/output/ClassIndexPrediction:0"/>
-    <param name="num_classes" type="int" value="14" />
+    <!-- <param name="num_classes" type="int" value="14" /> -->
+    <param name="num_classes" type="int" value="21" />
     <param name="skip_input_img_freq" type="int"    value="1" /> <!-- use every k frames -->>
     <param name="neural_net_input_width" type="int" value="640"/>
     <param name="neural_net_input_height" type="int" value="480"/>
+    <param name="enable_colored_labeling" type="bool" value="false" />
 
     <!-- input topic -->
     <remap from="~color_topic"        to="/camera/color/image_raw" />
@@ -31,7 +35,7 @@
 
   </node>
 
-   <node pkg="SegmentationMapping" type="stereo_segmentation_node"  name="stereo_segmentation_node" output="screen" required="true"  >
+   <node pkg="SegmentationMapping" type="stereo_segmentation_node"  name="stereo_segmentation_node" output="log" required="true"  >
      <param name="color_topic"        type="string" value="/camera/color/image_raw" />
      <param name="depth_topic"        type="string" value="/camera/aligned_depth_to_color/image_raw" />
      <param name="depth_cam_topic"    type="string" value="/camera/aligned_depth_to_color/camera_info" />
@@ -42,34 +46,37 @@
 
 
   <!-- Octomap, costmap generation -->
-  <node pkg="SegmentationMapping" type="labeled_pc_map_node" name="labeled_pc_map_node" output="screen" required="true" >
+  <node pkg="SegmentationMapping" type="labeled_pc_map_node" name="labeled_pc_map_node" output="screen" required="true">
     <remap from="/labeled_pc_map_node/cost_map" to="/labeled_pc_map_node/cost_map2"/>
     <remap from="/labeled_pc_map_node/occupancy_grid" to="/labeled_pc_map_node/occupancy_grid2"/>
 
     <remap from="~cloud_in" to="/labeled_pointcloud" />
     <remap from="~cloud_out" to="/labeled_pointcloud_local_pc2" />
 
-    <rosparam param="labels_to_ignore_in_map">[0, 8, 13]</rosparam>
-    <rosparam param="target_labels_in_map">[2,3]</rosparam>
+    <!-- <rosparam param="labels_to_ignore_in_map">[0, 8, 13]</rosparam>
+    <rosparam param="target_labels_in_map">[2,3]</rosparam> -->
+
+    <rosparam param="labels_to_ignore_in_map">[10]</rosparam>
+    <rosparam param="target_labels_in_map">[0, 1, 14]</rosparam>
 
 
     <param name="distribution_enabled" type="bool" value="true" />
     <param name="static_frame"  type="string" value="odom" />
-    <param name="body_frame"  type="string" value="/camera_color_optical_frame" />
+    <param name="body_frame"  type="string" value="camera_color_optical_frame" />
     <param name="painting_enabled" type="bool" value="true" />
     <param name="stacking_visualization_enabled" type="bool" value="false" />
     <param name="path_visualization_enabled" type="bool" value="true" />
     <param name="save_pcd_enabled" type="bool" value="false" />
     <param name="color_octomap_enabled" type="bool" value="false" />
-    <param name="occupancy_grid_enabled" type="bool" value="true" />
+    <param name="occupancy_grid_enabled" type="bool" value="false" />
     <param name="occupancy_grid_noise_percent" type="double" value="0.0" />
-    <param name="cost_map_enabled" type="bool" value="true" />
+    <param name="cost_map_enabled" type="bool" value="false" />
 
 
     <!-- for semantic octomap generation -->
     <param name="octomap_enabled" type="bool" value="true"/>
     <param name="octomap_num_frames" type="int" value="3000" />
-    <param name="octomap_max_dist" type="int" value="9" />
+    <param name="octomap_max_dist" type="int" value="12" />
     <param name="octomap_resolution" type="double" value="0.20" />
     <param name="octomap_prob_hit" type="double" value="0.55" />
     <param name="octomap_prob_miss" type="double" value="0.3" />

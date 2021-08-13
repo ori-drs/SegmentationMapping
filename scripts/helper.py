@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 
 # source: https://github.com/UMich-BipedLab/segmentation_projection
@@ -9,7 +9,7 @@
 import numpy as np
 
 import pcl  # python-pcl
-import pcl.pcl_visualization
+#import pcl.pcl_visualization
 from label2color import label_to_color
 
 def publish_pcl_pc2_label(lidar, labels):
