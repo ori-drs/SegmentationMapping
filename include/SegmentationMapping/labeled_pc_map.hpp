@@ -86,6 +86,7 @@ namespace SegmentationMapping {
       , octomap_frame_counter_(0)
       , octomap_num_frames_(200)
       , octomap_max_dist_(20.0)
+      , bounding_box_size_(7.0)
     {
       // Parse parameters
       ros::NodeHandle pnh("~");
@@ -104,6 +105,7 @@ namespace SegmentationMapping {
       pnh.getParam("octomap_num_frames", octomap_num_frames_);
       pnh.getParam("octomap_max_dist", octomap_max_dist_);
       pnh.getParam("octomap_resolution", octomap_resolution_);
+      pnh.getParam("bounding_box_size", bounding_box_size_);
 
       XmlRpc::XmlRpcValue v;
       pnh.getParam("labels_to_ignore_in_map", v);
@@ -264,6 +266,7 @@ namespace SegmentationMapping {
     bool occupancy_grid_enabled_;
     bool cost_map_enabled_;
     bool octomap_enabled_;
+    double bounding_box_size_;
 
     // for voxel grid pointcloud map
     ros::Publisher stacked_pc_publisher_;
@@ -552,8 +555,8 @@ namespace SegmentationMapping {
     if (octomap_enabled_){
       //if (is_update_occupancy)
 
-      octomap::point3d bbx_min(-6.0, -6.0, -6.0);
-      octomap::point3d bbx_max(6.0, 6.0, 6.0);
+      octomap::point3d bbx_min(-bounding_box_size_, -bounding_box_size_, -bounding_box_size_);
+      octomap::point3d bbx_max(bounding_box_size_, bounding_box_size_, bounding_box_size_);
       octomap::point3d dxyz(T_map2body_eigen(0, 3), T_map2body_eigen(1, 3), T_map2body_eigen(2, 3));
       bbx_min = bbx_min + dxyz;
       bbx_max = bbx_max + dxyz;

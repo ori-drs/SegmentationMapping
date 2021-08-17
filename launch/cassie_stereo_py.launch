@@ -46,7 +46,7 @@
 
 
   <!-- Octomap, costmap generation -->
-  <node pkg="SegmentationMapping" type="labeled_pc_map_node" name="labeled_pc_map_node" output="screen" required="true">
+  <node pkg="SegmentationMapping" type="labeled_pc_map_node" name="labeled_pc_map_node" output="log" required="true">
     <remap from="/labeled_pc_map_node/cost_map" to="/labeled_pc_map_node/cost_map2"/>
     <remap from="/labeled_pc_map_node/occupancy_grid" to="/labeled_pc_map_node/occupancy_grid2"/>
 
@@ -77,10 +77,11 @@
     <param name="octomap_enabled" type="bool" value="true"/>
     <param name="octomap_num_frames" type="int" value="3000" />
     <param name="octomap_max_dist" type="int" value="12" />
-    <param name="octomap_resolution" type="double" value="0.20" />
+    <param name="octomap_resolution" type="double" value="0.2" />
     <param name="octomap_prob_hit" type="double" value="0.55" />
     <param name="octomap_prob_miss" type="double" value="0.3" />
     <param name="octomap_occupy_thresh" type="double" value="0.35" />
+    <param name="bounding_box_size" type="double" value="7.0" />
   </node>
   
 
