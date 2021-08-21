@@ -14,6 +14,7 @@ from SegmentationMapping.msg import ImageLabelDistribution
 from pprint import pprint
 import segmentation_models as sm
 sm.set_framework('tf.keras')
+from segmentation_models import get_preprocessing
 from matplotlib import pyplot as plt
 
 # map label to color
@@ -62,6 +63,9 @@ class SegmentationNode:
                                                rospy.get_param("~network_distribution_output_tensor"),\
                                                rospy.get_param("~enable_colored_labeling", False))
         print(self.network_config)
+        # self.backbone = 'resnet34'
+        self.backbone = 'mobilenet'
+        self.preprocess_input = get_preprocessing(self.backbone)
 
         # Initialize the neural network
         self.tf_init()
@@ -80,7 +84,7 @@ class SegmentationNode:
                                                               ImageLabelDistribution, queue_size=1)
         #self.sub = rospy.Subscriber('~color_topic', Image, self.callback)
         self.input_rgb_img_ = rospy.Subscriber('~color_topic',
-                                                         Image,  self.callback, queue_size=5)
+                                                         Image,  self.callback, queue_size=1)
         
         self.skip_img_freq = rospy.get_param('~skip_input_img_freq')
         self.counter = 0
@@ -153,20 +157,16 @@ class SegmentationNode:
         # print("Tf init finish")
 
         print("Initializing the neural network...")
-        # self.model = sm.Unet('mobilenet', encoder_weights='imagenet', classes=21, encoder_freeze=True)
-        # self.model.compile(optimizer='adam', loss='categorical_crossentropy')    # compile the model
-        # print("Loading weights...")
-        # self.model.load_weights(self.network_config.path)
-        # print("Weights loaded!")
 
-        self.model = sm.Unet('mobilenet', encoder_weights='imagenet', classes=21, encoder_freeze=True)
+        self.model = sm.Unet(self.backbone, encoder_weights='imagenet', classes=21, encoder_freeze=True)
         self.model.load_weights(self.network_config.path)
         
         # Predict some random image to load the necessary libraries
         x = cv2.imread("/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/data/train/images/image4914.png", cv2.IMREAD_COLOR)          # read the image as BGR
         B, G, R = cv2.split(x)                          # split into 3 channels
         x = cv2.merge([R, G, B])                        # convert into RGB
-        x = x / 255.0                                   # normalize
+        # x = x / 255.0                                   # normalize
+        x = self.preprocess_input(x)
         x = x.astype(np.float32)
         x = x[None, :]
         self.model.predict(x)
@@ -212,6 +212,7 @@ class SegmentationNode:
     def infer(self, rgb_img):
         
         num_class = self.network_config.num_classes
+        rgb_img = rgb_img[:, :640, :]
 
         if rgb_img.shape[0] != self.network_config.input_height or \
           rgb_img.shape[1] != self.network_config.input_width:
@@ -225,8 +226,9 @@ class SegmentationNode:
         # rgb = rgb_img
 
         # rgb = np.expand_dims(rgb, axis=0)
+        rgb = self.preprocess_input(rgb)
         rgb = rgb[None, :]
-        rgb = rgb / 255.
+        # rgb = rgb / 255.
 
         # label_out, dist_out = self.sess.run([self.y, self.dist], feed_dict={self.x: rgb})
         preds = self.model.predict(rgb)

@@ -87,6 +87,7 @@ namespace SegmentationMapping {
       , octomap_num_frames_(200)
       , octomap_max_dist_(20.0)
       , bounding_box_size_(7.0)
+      , octomap_cropping_enabled_(true)
     {
       // Parse parameters
       ros::NodeHandle pnh("~");
@@ -106,6 +107,7 @@ namespace SegmentationMapping {
       pnh.getParam("octomap_max_dist", octomap_max_dist_);
       pnh.getParam("octomap_resolution", octomap_resolution_);
       pnh.getParam("bounding_box_size", bounding_box_size_);
+      pnh.getParam("octomap_cropping_enabled", octomap_cropping_enabled_);
 
       XmlRpc::XmlRpcValue v;
       pnh.getParam("labels_to_ignore_in_map", v);
@@ -200,20 +202,20 @@ namespace SegmentationMapping {
 
         // create label map
         label2color[0] = std::make_tuple(29, 28, 33);
-        label2color[1] = std::make_tuple(208, 235, 160);
-        label2color[2] = std::make_tuple(43, 237, 21);
-        label2color[3] = std::make_tuple(217, 240, 17);
+        label2color[1] = std::make_tuple(245, 245, 245);
+        label2color[2] = std::make_tuple(0, 100, 0);
+        label2color[3] = std::make_tuple(124, 252, 0);
         label2color[4] = std::make_tuple(186, 24, 65);
         label2color[5] = std::make_tuple(192, 192, 192);
-        label2color[6] = std::make_tuple(235, 45, 98);
+        label2color[6] = std::make_tuple(255, 140, 0);
         label2color[7] = std::make_tuple(20, 99, 143);
-        label2color[8] = std::make_tuple(157, 199, 194);
+        label2color[8] = std::make_tuple(255, 105, 180);
         label2color[9] = std::make_tuple(237, 61, 55);
         label2color[10] = std::make_tuple(32, 39, 232);
         label2color[11] = std::make_tuple(37, 193, 245);
         label2color[12] = std::make_tuple(132, 143, 127);
         label2color[13] = std::make_tuple(25, 151, 209);
-        label2color[14] = std::make_tuple(83, 90, 169);
+        label2color[14] = std::make_tuple(255, 215, 0);
         label2color[15] = std::make_tuple(158, 163, 62);
         label2color[16] = std::make_tuple(182, 55, 127);
         label2color[17] = std::make_tuple(101, 28, 173);
@@ -266,6 +268,7 @@ namespace SegmentationMapping {
     bool occupancy_grid_enabled_;
     bool cost_map_enabled_;
     bool octomap_enabled_;
+    bool octomap_cropping_enabled_;
     double bounding_box_size_;
 
     // for voxel grid pointcloud map
@@ -555,20 +558,21 @@ namespace SegmentationMapping {
     if (octomap_enabled_){
       //if (is_update_occupancy)
 
-      octomap::point3d bbx_min(-bounding_box_size_, -bounding_box_size_, -bounding_box_size_);
-      octomap::point3d bbx_max(bounding_box_size_, bounding_box_size_, bounding_box_size_);
-      octomap::point3d dxyz(T_map2body_eigen(0, 3), T_map2body_eigen(1, 3), T_map2body_eigen(2, 3));
-      bbx_min = bbx_min + dxyz;
-      bbx_max = bbx_max + dxyz;
-      octree_ptr_->setBBXMin(bbx_min);
-      octree_ptr_->setBBXMax(bbx_max);
+      if (octomap_cropping_enabled_){
+        octomap::point3d bbx_min(-bounding_box_size_, -bounding_box_size_, -bounding_box_size_);
+        octomap::point3d bbx_max(bounding_box_size_, bounding_box_size_, bounding_box_size_);
+        octomap::point3d dxyz(T_map2body_eigen(0, 3), T_map2body_eigen(1, 3), T_map2body_eigen(2, 3));
+        bbx_min = bbx_min + dxyz;
+        bbx_max = bbx_max + dxyz;
+        octree_ptr_->setBBXMin(bbx_min);
+        octree_ptr_->setBBXMax(bbx_max);
 
-      for(octomap::SemanticOcTree::leaf_iterator it = octree_ptr_->begin_leafs(),
-       end=octree_ptr_->end_leafs(); it!= end; ++it)    // loop through all leaves
-      {
-        if (!octree_ptr_->inBBX(it.getCoordinate())){
-          // std::cout << "In BBX: " << octree_ptr_->inBBX(it.getCoordinate()) << std::endl;
-          octree_ptr_->deleteNode(it.getCoordinate());  // delete leaf if outside bounding box
+        for(octomap::SemanticOcTree::leaf_iterator it = octree_ptr_->begin_leafs(),
+        end=octree_ptr_->end_leafs(); it!= end; ++it)    // loop through all leaves
+        {
+          if (!octree_ptr_->inBBX(it.getCoordinate())){
+            octree_ptr_->deleteNode(it.getCoordinate());  // delete leaf if outside bounding box
+          }
         }
       }
 

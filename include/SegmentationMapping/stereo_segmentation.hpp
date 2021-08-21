@@ -124,20 +124,20 @@ namespace SegmentationMapping {
       // label2color[0]  =std::make_tuple(255, 255, 255 ); // background
       
         label2color[0] = std::make_tuple(29, 28, 33);
-        label2color[1] = std::make_tuple(208, 235, 160);
-        label2color[2] = std::make_tuple(43, 237, 21);
-        label2color[3] = std::make_tuple(217, 240, 17);
+        label2color[1] = std::make_tuple(245, 245, 245);
+        label2color[2] = std::make_tuple(0, 100, 0);
+        label2color[3] = std::make_tuple(124, 252, 0);
         label2color[4] = std::make_tuple(186, 24, 65);
         label2color[5] = std::make_tuple(192, 192, 192);
-        label2color[6] = std::make_tuple(235, 45, 98);
+        label2color[6] = std::make_tuple(255, 140, 0);
         label2color[7] = std::make_tuple(20, 99, 143);
-        label2color[8] = std::make_tuple(157, 199, 194);
+        label2color[8] = std::make_tuple(255, 105, 180);
         label2color[9] = std::make_tuple(237, 61, 55);
         label2color[10] = std::make_tuple(32, 39, 232);
         label2color[11] = std::make_tuple(37, 193, 245);
         label2color[12] = std::make_tuple(132, 143, 127);
         label2color[13] = std::make_tuple(25, 151, 209);
-        label2color[14] = std::make_tuple(83, 90, 169);
+        label2color[14] = std::make_tuple(255, 215, 0);
         label2color[15] = std::make_tuple(158, 163, 62);
         label2color[16] = std::make_tuple(182, 55, 127);
         label2color[17] = std::make_tuple(101, 28, 173);
@@ -239,15 +239,13 @@ namespace SegmentationMapping {
     }
     //;cv::Mat color = color_ptr->image;
     //cv::Mat depth = depth_ptr->image;
+  
+    depth_ptr->image = depth_ptr->image(cv::Rect(0, 0, 640, 480));
+    color_ptr->image = color_ptr->image(cv::Rect(0, 0, 640, 480));
 
     double fx = double(label_ptr->image.cols) / double(depth_ptr->image.cols);
     double fy = double(label_ptr->image.rows) / double(depth_ptr->image.rows);
 
-    std::cout << fx << " " << fy << std::endl;
-
-    // cv::resize(color_ptr->image, color_ptr->image, cv::Size(), 0.755, 1.0, 0); // resize inter-nearest interpolation
-    // cv::resize(depth_ptr->image, depth_ptr->image, cv::Size(), 0.755, 1.0, 0); // resize inter-nearest interpolation
-  
     cv::resize(color_ptr->image, color_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
     cv::resize(depth_ptr->image, depth_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
 
