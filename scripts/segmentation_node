@@ -44,7 +44,7 @@ import pdb
 # Extra
 import PIL
 import time
-# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'       # disables GPU usage (uses CPU instead)
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'       # disables GPU usage (uses CPU instead)
 
 
 class SegmentationNode:
@@ -165,7 +165,6 @@ class SegmentationNode:
         x = cv2.imread("/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/data/train/images/image4914.png", cv2.IMREAD_COLOR)          # read the image as BGR
         B, G, R = cv2.split(x)                          # split into 3 channels
         x = cv2.merge([R, G, B])                        # convert into RGB
-        # x = x / 255.0                                   # normalize
         x = self.preprocess_input(x)
         x = x.astype(np.float32)
         x = x[None, :]
@@ -212,13 +211,13 @@ class SegmentationNode:
     def infer(self, rgb_img):
         
         num_class = self.network_config.num_classes
-        rgb_img = rgb_img[:, :640, :]
+        initial_dimensions = rgb_img.shape
+        # rgb_img = rgb_img[:, :640, :]
 
         if rgb_img.shape[0] != self.network_config.input_height or \
           rgb_img.shape[1] != self.network_config.input_width:
            rgb = cv2.resize(rgb_img, \
                             dsize=(self.network_config.input_width, self.network_config.input_height),\
-                            # (480, 640), \
                             interpolation=cv2.INTER_CUBIC)
         else:
            rgb = rgb_img
@@ -226,21 +225,26 @@ class SegmentationNode:
         # rgb = rgb_img
 
         # rgb = np.expand_dims(rgb, axis=0)
+        # label_out, dist_out = self.sess.run([self.y, self.dist], feed_dict={self.x: rgb})
+
+        # dist_out = dist_out[0, :, :, :]
+        # label_out = label_out[0, :, : ].astype(np.uint8)
+        ##################
         rgb = self.preprocess_input(rgb)
         rgb = rgb[None, :]
-        # rgb = rgb / 255.
 
-        # label_out, dist_out = self.sess.run([self.y, self.dist], feed_dict={self.x: rgb})
         preds = self.model.predict(rgb)
         dist_out = np.squeeze(preds)
         label_out = np.argmax(dist_out, axis=2)
         dist_out = dist_out.astype(np.float64)
         label_out = label_out.astype(np.uint8)
 
+        # Convert back into initial size
+        dist_out = cv2.resize(dist_out, dsize=(initial_dimensions[1], initial_dimensions[0]), interpolation=cv2.INTER_NEAREST)
+        label_out = cv2.resize(label_out, dsize=(initial_dimensions[1], initial_dimensions[0]), interpolation=cv2.INTER_NEAREST)
         now  = rospy.Time.now()
 
-        # dist_out = dist_out[0, :, :, :]
-        # label_out = label_out[0, :, : ].astype(np.uint8)
+        
         rospy.loginfo("after segmentation time %i %i", now.secs, now.nsecs )
         
         # Generating colored output

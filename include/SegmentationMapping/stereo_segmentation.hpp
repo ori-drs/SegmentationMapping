@@ -109,6 +109,7 @@ namespace SegmentationMapping {
       ROS_DEBUG_STREAM("Init tensorflow and revoke frozen graph from "<<frozen_graph_path);
       */
       // label2color[2]  =std::make_tuple(250, 250, 250 ); // road
+      // // label2color[2]  =std::make_tuple(0, 0, 0 ); // road
       // label2color[3]  =std::make_tuple(250, 250, 250 ); // sidewalk
       // label2color[5]  =std::make_tuple(250, 128, 0   ); // building
       // label2color[10] =std::make_tuple(192, 192, 192 ); // pole
@@ -240,14 +241,14 @@ namespace SegmentationMapping {
     //;cv::Mat color = color_ptr->image;
     //cv::Mat depth = depth_ptr->image;
   
-    depth_ptr->image = depth_ptr->image(cv::Rect(0, 0, 640, 480));
-    color_ptr->image = color_ptr->image(cv::Rect(0, 0, 640, 480));
+    // depth_ptr->image = depth_ptr->image(cv::Rect(0, 0, 640, 480));
+    // color_ptr->image = color_ptr->image(cv::Rect(0, 0, 640, 480));
 
-    double fx = double(label_ptr->image.cols) / double(depth_ptr->image.cols);
-    double fy = double(label_ptr->image.rows) / double(depth_ptr->image.rows);
+    // double fx = double(label_ptr->image.cols) / double(depth_ptr->image.cols);
+    // double fy = double(label_ptr->image.rows) / double(depth_ptr->image.rows);
 
-    cv::resize(color_ptr->image, color_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
-    cv::resize(depth_ptr->image, depth_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
+    // cv::resize(color_ptr->image, color_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
+    // cv::resize(depth_ptr->image, depth_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
 
     int rows = color_ptr->image.rows;
     int cols = color_ptr->image.cols;

@@ -185,6 +185,7 @@ namespace SegmentationMapping {
       if (octomap_enabled_) {
         // // create label map
         // label2color[2]  =std::make_tuple(250, 250, 250 ); // road
+        // // label2color[2]  =std::make_tuple(0, 0, 0 ); // road
         // //label2color[3]  =std::make_tuple(128, 64,  128 ); // sidewalk
         // label2color[3]  =std::make_tuple(250, 250,  250 ); // sidewalk
         // label2color[5]  =std::make_tuple(250, 128, 0   ); // building
