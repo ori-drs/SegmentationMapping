@@ -244,12 +244,6 @@ namespace SegmentationMapping {
     // depth_ptr->image = depth_ptr->image(cv::Rect(0, 0, 640, 480));
     // color_ptr->image = color_ptr->image(cv::Rect(0, 0, 640, 480));
 
-    // double fx = double(label_ptr->image.cols) / double(depth_ptr->image.cols);
-    // double fy = double(label_ptr->image.rows) / double(depth_ptr->image.rows);
-
-    // cv::resize(color_ptr->image, color_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
-    // cv::resize(depth_ptr->image, depth_ptr->image, cv::Size(), fx, fy, 0); // resize inter-nearest interpolation
-
     int rows = color_ptr->image.rows;
     int cols = color_ptr->image.cols;
     

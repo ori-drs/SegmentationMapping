@@ -44,7 +44,7 @@ import pdb
 # Extra
 import PIL
 import time
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'       # disables GPU usage (uses CPU instead)
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'       # disables GPU usage (uses CPU instead)
 
 
 class SegmentationNode:
