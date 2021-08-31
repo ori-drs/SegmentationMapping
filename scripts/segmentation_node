@@ -77,11 +77,11 @@ class SegmentationNode:
                                                     Image, queue_size=10)
         
         self.labeled_img_pub = rospy.Publisher("~label_topic",
-                                               Image, queue_size=1)
+                                               Image, queue_size=5)
         self.distribution_pub = rospy.Publisher("~distribution_topic",
-                                                ImageLabelDistribution, queue_size=1)
+                                                ImageLabelDistribution, queue_size=5)
         self.distribution_at_lidar_time_pub = rospy.Publisher("~distribution_at_lidar_time_topic",
-                                                              ImageLabelDistribution, queue_size=1)
+                                                              ImageLabelDistribution, queue_size=5)
         #self.sub = rospy.Subscriber('~color_topic', Image, self.callback)
         self.input_rgb_img_ = rospy.Subscriber('~color_topic',
                                                          Image,  self.callback, queue_size=1)
