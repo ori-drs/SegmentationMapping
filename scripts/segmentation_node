@@ -1,4 +1,4 @@
-#!/home/yemika/Public/anaconda3/envs/tensorflow_env/bin/python
+#!/usr/bin/python3
 
 
 
@@ -163,13 +163,13 @@ class SegmentationNode:
         self.model.load_weights(self.network_config.path)
         
         # Predict some random image to load the necessary libraries
-        x = cv2.imread("/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/data/train/images/image4914.png", cv2.IMREAD_COLOR)          # read the image as BGR
-        B, G, R = cv2.split(x)                          # split into 3 channels
-        x = cv2.merge([R, G, B])                        # convert into RGB
-        x = x / 255.0                                   # normalize
-        x = x.astype(np.float32)
-        x = x[None, :]
-        self.model.predict(x)
+        #x = cv2.imread("/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/data/train/images/image4914.png", cv2.IMREAD_COLOR)          # read the image as BGR
+        #B, G, R = cv2.split(x)                          # split into 3 channels
+        #x = cv2.merge([R, G, B])                        # convert into RGB
+        #x = x / 255.0                                   # normalize
+        #x = x.astype(np.float32)
+        #x = x[None, :]
+        #self.model.predict(x)
         print("Network initialization finished")
 
 
