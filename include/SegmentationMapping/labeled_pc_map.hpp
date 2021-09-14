@@ -531,21 +531,23 @@ namespace SegmentationMapping {
 
     if (octomap_enabled_){
       //if (is_update_occupancy)
-
-      octomap::point3d bbx_min(-bounding_box_size_, -bounding_box_size_, -bounding_box_size_);
-      octomap::point3d bbx_max(bounding_box_size_, bounding_box_size_, bounding_box_size_);
-      octomap::point3d dxyz(T_map2body_eigen(0, 3), T_map2body_eigen(1, 3), T_map2body_eigen(2, 3));
-      bbx_min = bbx_min + dxyz;
-      bbx_max = bbx_max + dxyz;
-      octree_ptr_->setBBXMin(bbx_min);
-      octree_ptr_->setBBXMax(bbx_max);
-
-      for(octomap::SemanticOcTree::leaf_iterator it = octree_ptr_->begin_leafs(),
-       end=octree_ptr_->end_leafs(); it!= end; ++it)    // loop through all leaves
+      if(bounding_box_size_ > 0)
       {
-        if (!octree_ptr_->inBBX(it.getCoordinate())){
-          // std::cout << "In BBX: " << octree_ptr_->inBBX(it.getCoordinate()) << std::endl;
-          octree_ptr_->deleteNode(it.getCoordinate());  // delete leaf if outside bounding box
+        octomap::point3d bbx_min(-bounding_box_size_, -bounding_box_size_, -bounding_box_size_);
+        octomap::point3d bbx_max(bounding_box_size_, bounding_box_size_, bounding_box_size_);
+        octomap::point3d dxyz(T_map2body_eigen(0, 3), T_map2body_eigen(1, 3), T_map2body_eigen(2, 3));
+        bbx_min = bbx_min + dxyz;
+        bbx_max = bbx_max + dxyz;
+        octree_ptr_->setBBXMin(bbx_min);
+        octree_ptr_->setBBXMax(bbx_max);
+
+        for(octomap::SemanticOcTree::leaf_iterator it = octree_ptr_->begin_leafs(),
+         end=octree_ptr_->end_leafs(); it!= end; ++it)    // loop through all leaves
+        {
+          if (!octree_ptr_->inBBX(it.getCoordinate())){
+            // std::cout << "In BBX: " << octree_ptr_->inBBX(it.getCoordinate()) << std::endl;
+            octree_ptr_->deleteNode(it.getCoordinate());  // delete leaf if outside bounding box
+          }
         }
       }
 
