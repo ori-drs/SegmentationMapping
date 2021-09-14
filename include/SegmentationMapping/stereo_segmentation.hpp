@@ -50,6 +50,9 @@
 //namespace tf = tensorflow;
 //namespace tf_ops = tensorflow::ops;
 
+// Extra
+#include <typeinfo>
+
 namespace SegmentationMapping {
 
 
@@ -66,6 +69,7 @@ namespace SegmentationMapping {
       , depth_cam_topic_("/camera/aligned_depth_to_color/camera_info")
       , label_topic_("/labeled_image")
       , distribution_topic_("/distribution_image")
+      , octomap_max_dist_(20.0)
     {
       ros::NodeHandle pnh("~");
       pnh.getParam("color_topic", color_topic_);
@@ -73,6 +77,7 @@ namespace SegmentationMapping {
       pnh.getParam("depth_cam_topic", depth_cam_topic_);
       pnh.getParam("label_topic", label_topic_);
       pnh.getParam("distribution_topic", distribution_topic_);
+      pnh.getParam("octomap_max_dist", octomap_max_dist_);
 
       // init the message filter for image, depth, camera info
       color_sub_ = new message_filters::Subscriber<sensor_msgs::Image> (pnh, color_topic_, 50);
@@ -81,11 +86,11 @@ namespace SegmentationMapping {
       label_sub_ = new message_filters::Subscriber<sensor_msgs::Image> (pnh, label_topic_, 5);
       distribution_sub_ = new message_filters::Subscriber<ImageLabelDistribution> (pnh, distribution_topic_, 5);
       sync_ = new message_filters::Synchronizer<sync_pol> (sync_pol(300), *depth_sub_, *color_sub_, *depth_cam_sub_, *label_sub_, *distribution_sub_);
-      
+
       sync_->registerCallback(boost::bind(&StereoSegmentation::DepthColorCallback, this,_1, _2, _3, _4, _5));
       
-      pc1_publisher_ = pnh.advertise<sensor_msgs::PointCloud>("/labeled_pointcloud", 1);
-      pc2_publisher_ = pnh.advertise<sensor_msgs::PointCloud2>("/labeled_pointcloud_color_pc2", 1);
+      pc1_publisher_ = pnh.advertise<sensor_msgs::PointCloud>("/labeled_pointcloud", 1);              // publishing topic
+      pc2_publisher_ = pnh.advertise<sensor_msgs::PointCloud2>("/labeled_pointcloud_color_pc2", 1);   // publishing topic
 
 
       num_skip_frames = pnh.getParam("skip_every_k_frame", num_skip_frames);
@@ -103,20 +108,43 @@ namespace SegmentationMapping {
                                    output_label_tensor_name, output_distribution_tensor_name));
       ROS_DEBUG_STREAM("Init tensorflow and revoke frozen graph from "<<frozen_graph_path);
       */
-      label2color[2]  =std::make_tuple(250, 250, 250 ); // road
-      label2color[3]  =std::make_tuple(250, 250, 250 ); // sidewalk
-      label2color[5]  =std::make_tuple(250, 128, 0   ); // building
-      label2color[10] =std::make_tuple(192, 192, 192 ); // pole
-      label2color[12] =std::make_tuple(250, 250, 0   ); // sign
-      label2color[6]  =std::make_tuple(0  , 100, 0   ); // vegetation
-      label2color[4]  =std::make_tuple(128, 128, 0   ); // terrain
-      label2color[13] =std::make_tuple(135, 206, 235 ); // sky
-      label2color[1]  =std::make_tuple( 30, 144, 250 ); // water
-      label2color[8]  =std::make_tuple(220, 20,  60  ); // person
-      label2color[7]  =std::make_tuple( 0, 0,142     ); // car
-      label2color[9]  =std::make_tuple(119, 11, 32   ); // bike
-      label2color[11] =std::make_tuple(123, 104, 238 ); // stair
-      label2color[0]  =std::make_tuple(255, 255, 255 ); // background
+      // label2color[2]  =std::make_tuple(250, 250, 250 ); // road
+      // // label2color[2]  =std::make_tuple(0, 0, 0 ); // road
+      // label2color[3]  =std::make_tuple(250, 250, 250 ); // sidewalk
+      // label2color[5]  =std::make_tuple(250, 128, 0   ); // building
+      // label2color[10] =std::make_tuple(192, 192, 192 ); // pole
+      // label2color[12] =std::make_tuple(250, 250, 0   ); // sign
+      // label2color[6]  =std::make_tuple(0  , 100, 0   ); // vegetation
+      // label2color[4]  =std::make_tuple(128, 128, 0   ); // terrain
+      // label2color[13] =std::make_tuple(135, 206, 235 ); // sky
+      // label2color[1]  =std::make_tuple( 30, 144, 250 ); // water
+      // label2color[8]  =std::make_tuple(220, 20,  60  ); // person
+      // label2color[7]  =std::make_tuple( 0, 0,142     ); // car
+      // label2color[9]  =std::make_tuple(119, 11, 32   ); // bike
+      // label2color[11] =std::make_tuple(123, 104, 238 ); // stair
+      // label2color[0]  =std::make_tuple(255, 255, 255 ); // background
+      
+        label2color[0] = std::make_tuple(29, 28, 33);
+        label2color[1] = std::make_tuple(245, 245, 245);
+        label2color[2] = std::make_tuple(0, 100, 0);
+        label2color[3] = std::make_tuple(124, 252, 0);
+        label2color[4] = std::make_tuple(186, 24, 65);
+        label2color[5] = std::make_tuple(192, 192, 192);
+        label2color[6] = std::make_tuple(255, 140, 0);
+        label2color[7] = std::make_tuple(20, 99, 143);
+        label2color[8] = std::make_tuple(255, 105, 180);
+        label2color[9] = std::make_tuple(237, 61, 55);
+        label2color[10] = std::make_tuple(32, 39, 232);
+        label2color[11] = std::make_tuple(37, 193, 245);
+        label2color[12] = std::make_tuple(132, 143, 127);
+        label2color[13] = std::make_tuple(25, 151, 209);
+        label2color[14] = std::make_tuple(255, 215, 0);
+        label2color[15] = std::make_tuple(158, 163, 62);
+        label2color[16] = std::make_tuple(182, 55, 127);
+        label2color[17] = std::make_tuple(101, 28, 173);
+        label2color[18] = std::make_tuple(162, 168, 104);
+        label2color[19] = std::make_tuple(162, 135, 176);
+        label2color[20] = std::make_tuple(45, 149, 238);
       
     }
     
@@ -170,6 +198,7 @@ namespace SegmentationMapping {
     int num_skip_frames;
     //std::unique_ptr<tfInference> tf_infer;
     std::unordered_map<int, std::tuple<uint8_t, uint8_t, uint8_t>> label2color;
+    float octomap_max_dist_;
   };
   
   template <unsigned int NUM_CLASS>
@@ -181,14 +210,14 @@ namespace SegmentationMapping {
                                                     const ImageLabelDistributionConstPtr & distribution_msg) {
     ros::Time curr_t = ros::Time::now();
     ROS_DEBUG_STREAM("Callback starts at time "<<uint32_t(curr_t.toSec())<<". "<<(uint32_t)curr_t.toNSec() );
-    
+
     // std::cout << "depth: " << depth_msg->header.stamp << std::endl;
     // std::cout << "color: " << color_msg->header.stamp << std::endl;
     // std::cout << "camera_info: " << camera_info_msg->header.stamp << std::endl;
     // std::cout << "labeled_msg: " << labeled_msg->header.stamp << std::endl;
     // std::cout << "distribution_msg: " << distribution_msg->header.stamp << std::endl;
 
-
+    
     // std::cout<<"DepthColorCallback: New callback"<< depth_msg->header.frame_id <<"\n";
     // Check for bad inputs
     if (depth_msg->header.frame_id != color_msg->header.frame_id) {
@@ -211,22 +240,26 @@ namespace SegmentationMapping {
     }
     //;cv::Mat color = color_ptr->image;
     //cv::Mat depth = depth_ptr->image;
+  
+    // depth_ptr->image = depth_ptr->image(cv::Rect(0, 0, 640, 480));
+    // color_ptr->image = color_ptr->image(cv::Rect(0, 0, 640, 480));
 
     int rows = color_ptr->image.rows;
     int cols = color_ptr->image.cols;
     
     //float * buffer = new float [distribution_msg->distribution.data.layout.dims[0].stride];
     std::vector<float> data = distribution_msg->distribution.data;
-   
+     
     //  TensorMap<Tensor<int, 4>> t_4d(storage, 2, 4, 2, 8);
     //Eigen::Map<Eigen::MatrixXf> mat(data.data(), h, w);
     //cv::Mat distribution_output = cv::Mat(rows, cols, CV_32FC(uint32_t(distribution_msg->distribution.layout.dim[2].size)), distribution_msg->distribution.data).clone();
+
     cv::Mat distribution_output = cv::Mat(rows, cols, CV_32FC(NUM_CLASS), const_cast<float*>(distribution_msg->distribution.data.data())).clone();
     //std::cout<<"distribution.data size "<<distribution_output.total() * distribution_output.elemSize()<<std::endl;
     
     //tf_infer->segmentation(color, 20, label_output, distribution_output);
     
-      
+    
     // Update camera model
     this->model_.fromCameraInfo(camera_info_msg);
 
@@ -252,7 +285,7 @@ namespace SegmentationMapping {
                                                    const cv::Mat & label_img,
                                                    const cv::Mat & distribution_img) {
     std::cout<<"New image with label\n";
-    
+
     // Set up to-publish cloud msg
     sensor_msgs::PointCloud::Ptr cloud_msg(new sensor_msgs::PointCloud);
     cloud_msg->header = depth_msg->header;  // use depth image time stamp
@@ -282,7 +315,7 @@ namespace SegmentationMapping {
     float constant_x = unit_scaling / model_.fx();
     float constant_y = unit_scaling / model_.fy();
     float bad_point = std::numeric_limits<float>::quiet_NaN();
-  
+    
     const uint16_t* depth_row = reinterpret_cast<const uint16_t*>(&depth_msg->data[0]);
     int row_step = depth_msg->step / sizeof(uint16_t);
     const uint8_t* color = &color_msg->data[0];
@@ -320,17 +353,16 @@ namespace SegmentationMapping {
         p.x = (u - center_x) * depth * constant_x;
         p.y = (v - center_y) * depth * constant_y;
         p.z = (float) depth * unit_scaling;
-        points_count += 1;
+        points_count += 1;  // stores the total number of "good" points
       }
 
       if (depth > 0)
-      	if (sqrt(p.x * p.x + p.y * p.y + p.z * p.z) > 9)
+      	// if (sqrt(p.x * p.x + p.y * p.y + p.z * p.z) > 9)  // eliminate too far points MAGICAL NUMBER
+        if (sqrt(p.x * p.x + p.y * p.y + p.z * p.z) > octomap_max_dist_)  // eliminate too far points
           p.x = p.y = p.z = bad_point;
 
       cloud_msg->points.push_back(p);
-
       if (publish_semantic) {
-
         // Fill in semantics
         //cv::Mat dist_cv =distribution_exp(cv::Rect(u, v, 1, 1));
         cv::Vec<float, NUM_CLASS> dist_class = distribution_exp.at<cv::Vec<float, NUM_CLASS>>(v, u);
@@ -353,7 +385,7 @@ namespace SegmentationMapping {
         float sum_all_exp = dist_class.sum();
         dist_class = (dist_class / sum_all_exp).eval();
         */
-        int max_ind =0;
+        int max_ind = 0;
         float max_elem = 0;
         for (int i = 0; i < NUM_CLASS; i++) {
           if (dist_class(i) > max_elem) {
@@ -400,7 +432,6 @@ namespace SegmentationMapping {
     for (int i = 0; i < NUM_CLASS; i++)
       cloud_msg->channels.push_back(distribution_channel[i]);
 
-    
     pc1_publisher_.publish(cloud_msg);
   }
 

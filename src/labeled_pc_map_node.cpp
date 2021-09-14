@@ -14,13 +14,14 @@
 #include <iostream>
 
 // for nclt: 14 classes
-POINT_CLOUD_REGISTER_POINT_STRUCT(pcl::PointSegmentedDistribution<14>,
+POINT_CLOUD_REGISTER_POINT_STRUCT(pcl::PointSegmentedDistribution<21>,
                                   (float, x, x)
                                   (float, y, y)
                                   (float, z, z)
                                   (float, rgb, rgb)
                                   (int, label, label)
-                                  (float[14],label_distribution, label_distribution)
+                                  // (float[14],label_distribution, label_distribution)
+                                  (float[21],label_distribution, label_distribution)
                                   )
 
 
@@ -29,8 +30,11 @@ int main(int argc, char ** argv){
 
   ros::init(argc, argv, "labeled_pc_map_node");
   //ros::NodeHandle nh("~");
-  ROS_INFO("nclt 14-class pc_painter init....");
-  SegmentationMapping::PointCloudPainter<14> painter;
+  // ROS_INFO("nclt 14-class pc_painter init....");
+  // SegmentationMapping::PointCloudPainter<14> painter;
+
+  ROS_INFO("nclt 21-class pc_painter init....");
+  SegmentationMapping::PointCloudPainter<21> painter;
 
   //pcl::PointCloud<pcl::PointSegmentedDistribution<14>> pc;
   //pcl::io::loadPCDFile ("/home/biped/.ros/segmented_pcd_cc/1335704128112920045.pcd", pc);
