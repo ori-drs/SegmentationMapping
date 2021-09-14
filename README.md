@@ -51,6 +51,7 @@ C++: `pcl`, `eigen`, `OpenCV`
 ros thirdparty: 
 * [`semantic octomap`](https://github.com/UMich-BipedLab/octomap.git): Modified octomap, supporting Bayesian updates for semantic label fusion
 * [`ros_numpy`](https://github.com/eric-wieser/ros_numpy)
+* ros-noetic-octomap-rviz-plugins
 
 ## Compiling
 Make sure that your semantic octomap is build. Then run 
