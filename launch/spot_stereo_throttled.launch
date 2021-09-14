@@ -27,15 +27,15 @@
     <param name="lidar_topic" type="str" value="/os_cloud_node/points_timestamp_corrected"/> 
 
     <!-- input topic -->
-    <remap from="~color_topic"        to="/camera/color/image_raw" />
-    <remap from="~depth_topic"        to="/camera/aligned_depth_to_color/image_raw" />
+    <remap from="~color_topic"        to="/camera/color_throttled/image_raw" />
+    <remap from="~depth_topic"        to="/camera/aligned_depth_to_color_throttled/image_raw" />
 
   </node>
 
    <node pkg="SegmentationMapping" type="stereo_segmentation_node"  name="stereo_segmentation_node" output="screen" required="true"  >
-     <param name="color_topic"        type="string" value="/camera/color/image_raw" />
-     <param name="depth_topic"        type="string" value="/camera/aligned_depth_to_color/image_raw" />
-     <param name="depth_cam_topic"    type="string" value="/camera/aligned_depth_to_color/camera_info" />
+     <param name="color_topic"        type="string" value="/camera/color_throttled/image_raw" />
+     <param name="depth_topic"        type="string" value="/camera/aligned_depth_to_color_throttled/image_raw" />
+     <param name="depth_cam_topic"    type="string" value="/camera/aligned_depth_to_color_throttled/camera_info" />
      <param name="label_topic"        type="string" value="/segmentation_node/label_topic" />
      <param name="distribution_topic" type="string" value="/segmentation_node/distribution_topic" />
      <param name="skip_every_k_frame" type="int"    value="1" />
