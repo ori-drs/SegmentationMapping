@@ -1,55 +1,40 @@
-#!/home/yemika/Public/anaconda3/envs/tensorflow_env/bin/python
+#!/usr/bin/python3
 
-
+import cv2
+import time
+import numpy as np
 
 # ros
-from scipy.ndimage.measurements import label
 import rospy
-import ros_numpy
-import message_filters
 from sensor_msgs.msg import Image, PointCloud2
-from cv_bridge import CvBridge, CvBridgeError
-from std_msgs.msg import Float32MultiArray, MultiArrayLayout, MultiArrayDimension
+from cv_bridge import CvBridge
+from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 from SegmentationMapping.msg import ImageLabelDistribution
-from pprint import pprint
+
+# tensorflow
+import tensorflow as tf
+
+# for defining the model
 import segmentation_models as sm
 sm.set_framework('tf.keras')
 from segmentation_models import get_preprocessing
-from matplotlib import pyplot as plt
 
 # map label to color
-from label2color import label_to_color, background
+from label2color import label_to_color
 from NeuralNetConfigs import NeuralNetConfigs
-# visualize pcl
-#from helper import publish_pcl_pc2_label
-
-import cv2, time
-import numpy as np
-from threading import Lock
-from scipy.ndimage import rotate, zoom
-
-import sys, os
-if sys.version_info[0] < 3:
-    import Queue as queue
-else:
-    import queue
-
-import tensorflow as tf
-# import tensorflow.compat.v1 as tf
-# tf.disable_v2_behavior()
-    
-# debug
-import pdb
 
 # Extra
 import PIL
-import time
+# import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'       # disables GPU usage (uses CPU instead)
 
 
 class SegmentationNode:
+    """Class that performs semantic segmentation
+    """
     def __init__(self):
-
+        """Initialize an object of the class
+        """
         rospy.init_node('~', anonymous=True)
         
         # Load the network configurations into a tuple
@@ -63,15 +48,16 @@ class SegmentationNode:
                                                rospy.get_param("~network_distribution_output_tensor"),\
                                                rospy.get_param("~enable_colored_labeling", False))
         print(self.network_config)
+
+        # Choose the desired backbone for the network
         # self.backbone = 'resnet34'
         self.backbone = 'mobilenet'
         self.preprocess_input = get_preprocessing(self.backbone)
 
         # Initialize the neural network
         self.tf_init()
-        
-        
-        # Creating a topic to which colored label topic is output
+                
+        # Creating a topic to which colored label image is output
         if self.network_config.enable_colored_labeling:
             self.colored_img_pub = rospy.Publisher("/colored_label_topic",
                                                     Image, queue_size=10)
@@ -83,51 +69,26 @@ class SegmentationNode:
         self.distribution_at_lidar_time_pub = rospy.Publisher("~distribution_at_lidar_time_topic",
                                                               ImageLabelDistribution, queue_size=5)
         #self.sub = rospy.Subscriber('~color_topic', Image, self.callback)
-        self.input_rgb_img_ = rospy.Subscriber('~color_topic',
-                                                         Image,  self.callback, queue_size=1)
+        self.input_rgb_img_ = rospy.Subscriber('~color_topic', Image,  self.callback, queue_size=1)
         
         self.skip_img_freq = rospy.get_param('~skip_input_img_freq')
         self.counter = 0
         self.bridge = CvBridge()
 
-        self.lo = np.ones(shape=(480, 640)).astype(np.uint8)
-        self.do = np.zeros(shape=(480, 640, 21)).astype(np.float64)
-        for i in range(len(self.do)):
-            for j in range(len(self.do[i])):
-                self.do[i][j][1] = 1
-        
-        self.mapping_dict = {
-            0: 2,
-            1: 3,
-            2: 6,
-            3: 4,
-            4: 4,
-            5: 10,
-            6: 5,
-            7: 7,
-            8: 8,
-            9: 9,
-            10: 13,
-            11: 12,
-            12: 1,
-            13: 11,
-            14: 2,
-            15: 0,
-            16: 2,
-            17: 4,
-            18: 0,
-            19: 4,
-            20: 4
-        }
-        
+    def callback(self, img_msg):
+        """Call the inference script on the image when a ros image message arrives
 
-    def callback(self, img_msg):        
+        Args:
+            img_msg (sensor_msgs.msg.Image): The ros image message for which semantic segmentation has to be performed.
+        """        
         print("segmentaion call back")
+        # Perform inference at chosen interval
         if self.counter % self.skip_img_freq != 0:
             self.counter += 1
             return
         else:
             self.counter += 1
+        
         now  = rospy.Time.now()
         rospy.loginfo("New callback time %i %i, img_time: %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs )
         original_img = self.bridge.imgmsg_to_cv2(img_msg , desired_encoding="rgb8")
@@ -139,47 +100,44 @@ class SegmentationNode:
         self.publish_label_and_distribution(labeled_img, distribution, img_msg.header)
         
     def tf_init(self):
-        # print("open graph..")
-        # with tf.gfile.GFile(self.network_config.path, 'rb') as f:
-        #     self.graph_def = tf.GraphDef()
-        #     self.graph_def.ParseFromString(f.read())
-        # print("open graph complete")
-
-        # config = tf.ConfigProto()
-        # config.gpu_options.allow_growth = True
-        # self.sess = tf.Session(config=config)
-        # self.y, = tf.import_graph_def(self.graph_def, return_elements=[self.network_config.label_output_tensor], name='')
-        # self.G = tf.get_default_graph()
-        # self.x = self.G.get_tensor_by_name(self.network_config.image_input_tensor)
-        
-        # self.dist = self.G.get_tensor_by_name(self.network_config.distribution_output_tensor)
-        # tf.global_variables_initializer().run(session=self.sess)
-        # print("Tf init finish")
-
+        """Initialize the neural network that perfoms semantic segmentation
+        """
         print("Initializing the neural network...")
 
+        # Define the network
         self.model = sm.Unet(self.backbone, encoder_weights='imagenet', classes=21, encoder_freeze=True)
         self.model.load_weights(self.network_config.path)
         
-        # Predict some random image to load the necessary libraries
-        x = cv2.imread("/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/data/train/images/image4914.png", cv2.IMREAD_COLOR)          # read the image as BGR
-        B, G, R = cv2.split(x)                          # split into 3 channels
-        x = cv2.merge([R, G, B])                        # convert into RGB
+        # Predict some dummy image to load the necessary libraries
+        # x = cv2.imread("/home/yemika/Mikael/Work/ODRS/SegMap/network/MobileNetSeg/data/train/images/image4914.png", cv2.IMREAD_COLOR)          # read the image as BGR
+        # B, G, R = cv2.split(x)                          # split into 3 channels
+        # x = cv2.merge([R, G, B])                        # convert into RGB
+        x = np.zeros(shape=(self.network_config.input_height,   # 480
+                     self.network_config.input_width,           # 640
+                     3)).astype(np.uint8)
         x = self.preprocess_input(x)
         x = x.astype(np.float32)
         x = x[None, :]
         self.model.predict(x)
         print("Network initialization finished")
 
-
     def publish_label_and_distribution(self, labeled_img, distribution, header, lidar_header=None):
+        """Publish the predicted label and the probability distribution of the classes for each pixel of the image
+
+        Args:
+            labeled_img (cv2.Mat): Image of 1 channel, each pixel containing the predicted semantic segmentation label for that pixel.
+            distribution (cv2.Mat): Image of n channels, each pixel containing the probability of that pixel belonging to each of the n channels.
+            header (std_msgs.msg.Header): Header of the ROS image message
+            lidar_header (std_msgs.msg.Header, optional): Header of the ROS LiDAR message. Defaults to None.
+        """
         now  = rospy.Time.now()
         rospy.loginfo("Going to publish at time %i %i\n\n", now.secs, now.nsecs)
         
+        # Create an image message of the predicted labels
         label_msg = self.bridge.cv2_to_imgmsg(labeled_img, encoding="mono8")
         label_msg.header = header
 
-        distribution_msg = ImageLabelDistribution()
+        # Create a distribution messgae of the probabilities of each class
         m_arr = Float32MultiArray()
         m_arr.layout.data_offset = 0
         m_arr.layout.dim = [MultiArrayDimension() for _ in range(3)]
@@ -193,11 +151,11 @@ class SegmentationNode:
         m_arr.layout.dim[2].size = self.network_config.num_classes
         m_arr.layout.dim[2].stride = self.network_config.num_classes
         m_arr.data = distribution.flatten().tolist()
-
-        
+        distribution_msg = ImageLabelDistribution()
         distribution_msg.header = header
         distribution_msg.distribution = m_arr
 
+        # Publish the images
         self.labeled_img_pub.publish(label_msg)
         self.distribution_pub.publish(distribution_msg)
 
@@ -209,42 +167,42 @@ class SegmentationNode:
         rospy.loginfo("End callback at time %i %i\n\n", now.secs, now.nsecs)
 
     def infer(self, rgb_img):
-        
-        num_class = self.network_config.num_classes
+        """Infers semantic labels for the input color image
+
+        Args:
+            rgb_img (cv2.Mat): Input color image for which semantic labels have to be pridected.
+
+        Returns:
+            (tuple): tuple containing:
+                label_out (cv2.Mat): Image of 1 channel, each pixel containing the predicted semantic segmentation label for that pixel.
+                dist_out (cv2.Mat): Image of n channels, each pixel containing the probability of that pixel belonging to each of the n channels.
+        """
         initial_dimensions = rgb_img.shape
         # rgb_img = rgb_img[:, :640, :]
 
-        if rgb_img.shape[0] != self.network_config.input_height or \
-          rgb_img.shape[1] != self.network_config.input_width:
-           rgb = cv2.resize(rgb_img, \
-                            dsize=(self.network_config.input_width, self.network_config.input_height),\
+        # Resize the input image if its size does not match the size expected by the network - tejaswid: not sure why this needs to be done
+        if rgb_img.shape[0] != self.network_config.input_height or rgb_img.shape[1] != self.network_config.input_width:
+           rgb = cv2.resize(rgb_img,
+                            dsize=(self.network_config.input_width, self.network_config.input_height),
                             interpolation=cv2.INTER_CUBIC)
         else:
            rgb = rgb_img
 
-        # rgb = rgb_img
-
-        # rgb = np.expand_dims(rgb, axis=0)
-        # label_out, dist_out = self.sess.run([self.y, self.dist], feed_dict={self.x: rgb})
-
-        # dist_out = dist_out[0, :, :, :]
-        # label_out = label_out[0, :, : ].astype(np.uint8)
-        ##################
+        # Preprocess the input image
         rgb = self.preprocess_input(rgb)
-        rgb = rgb[None, :]
+        rgb = rgb[None, :]  # make the dimensions [1, rgb_img.shape[0], rgb_img.shape[1], rgb_img.shape[2]]
 
-        preds = self.model.predict(rgb)
-        dist_out = np.squeeze(preds)
-        label_out = np.argmax(dist_out, axis=2)
+        # predict the labels and their probabilities
+        dist_out = np.squeeze(self.model.predict(rgb))                # probabilites of a pixel belonging to each of the classes
+        label_out = np.argmax(dist_out, axis=2)     # the class with the highest probability
         dist_out = dist_out.astype(np.float64)
         label_out = label_out.astype(np.uint8)
 
-        # Convert back into initial size
+        # Convert back into initial size - tejaswid: if the initialial resize is not done, then this can be ignored
         dist_out = cv2.resize(dist_out, dsize=(initial_dimensions[1], initial_dimensions[0]), interpolation=cv2.INTER_NEAREST)
         label_out = cv2.resize(label_out, dsize=(initial_dimensions[1], initial_dimensions[0]), interpolation=cv2.INTER_NEAREST)
         now  = rospy.Time.now()
 
-        
         rospy.loginfo("after segmentation time %i %i", now.secs, now.nsecs )
         
         # Generating colored output
@@ -254,7 +212,7 @@ class SegmentationNode:
                 for j in range(len(colored_label_out[i])):
                     colored_label_out[i][j] = np.array(label_to_color[label_out[i][j]]) # convert labels into color
             colored_label_out = colored_label_out.astype(np.uint8) # turn into integer
-            image = PIL.Image.fromarray(colored_label_out, 'RGB')
+            image = PIL.Image.fromarray(colored_label_out, 'RGB')   # TODO: remove dependence on PIL. Replace it with Opencv Mat for consistency.
             image_msg = Image()
             image_msg.header.stamp = rospy.Time.now()
             image_msg.height = image.height
@@ -264,28 +222,6 @@ class SegmentationNode:
             image_msg.step = 3 * image.width
             image_msg.data = np.array(image).tobytes()
             self.colored_img_pub.publish(image_msg)
-        
-        
-
-        '''
-        dist_exp = np.exp(dist_out)
-        dist_class = dist_exp
-        #dist_class = zoom(dist_exp, (1.2, 640.0/800 , 1)).astype(np.float32)
-        dist_sum = np.sum(dist_class, axis=2, keepdims=1)
-
-        dist_class = dist_class / dist_sum
-        assert(np.sum(dist_class[1,1,:]) > 0.99 and np.sum(dist_class[1,1,:]) < 1.01)
-        background_sum = np.sum(dist_class[:, :, num_class:], axis=2)
-        dist_class = dist_class[:, :, :num_class]
-        dist_class[:,:,0] += background_sum
-        assert(np.sum(dist_class[1,1,:]) > 0.99 and np.sum(dist_class[1,1,:]) < 1.01)
-        label_img = np.argmax(dist_class, axis=2).astype(np.uint8)
-        print (label_img.dtype)
-        #label_img = cv2.resize(label_img, \
-        #                 dsize=(rgb_img.shape[1], rgb_img.shape[0]),\
-        #                       interpolation=cv2.INTER_NEAREST).astype(np.uint8)
-
-        '''
 
         return label_out, dist_out
 
