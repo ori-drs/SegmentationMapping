@@ -105,7 +105,7 @@ class SegmentationNode:
         print("Initializing the neural network...")
 
         # Define the network
-        self.model = sm.Unet(self.backbone, encoder_weights='imagenet', classes=21, encoder_freeze=True)
+        self.model = sm.Unet(self.backbone, encoder_weights='imagenet', classes=self.network_config.num_classes, encoder_freeze=True)
         self.model.load_weights(self.network_config.path)
         
         # Predict some dummy image to load the necessary libraries
