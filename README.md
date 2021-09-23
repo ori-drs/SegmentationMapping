@@ -45,6 +45,7 @@ Neural Network:
 Python thirdparty: 
 * [`python-pcl`](https://github.com/strawlab/python-pcl) 
 * `python-opencv`
+* [`segmentation-models`](https://github.com/qubvel/segmentation_models): `pip install segmentation-models`
 
 C++: `pcl`, `eigen`, `OpenCV`
 
