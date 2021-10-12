@@ -671,6 +671,8 @@ namespace SegmentationMapping {
     ROS_DEBUG_STREAM("Callback at time "<<uint32_t(curr_t.toSec())<<". "<<uint32_t(curr_t.toNSec()) );
     pcl::PointCloud<pcl::PointSegmentedDistribution<NUM_CLASS> > pointcloud_seg;
     pointcloud_seg.header.frame_id = cloud_msg->header.frame_id;
+    pcl_conversions::toPCL(cloud_msg->header.stamp, pointcloud_seg.header.stamp);
+
     for (int i = 0; i < cloud_msg->points.size(); ++i) {
       // filter out sky, background, human
       int label = cloud_msg->channels[0].values[i];
