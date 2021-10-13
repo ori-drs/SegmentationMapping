@@ -1,0 +1,37 @@
+group "0.sim_time_true" {
+    cmd "sim_time_do_second" {
+        exec = "rosparam set use_sim_time true";
+        host = "localhost";
+    }
+}
+
+group "1.static_tf" {
+    cmd "static_tf2_realsense_camera" {
+        exec = "rosrun tf2_ros static_transform_publisher 0 0 0 0 0 0 1 realsense_parent camera_link";
+        host = "localhost";
+    }
+}
+
+group "2.segmap" {
+    cmd "segmap" {
+        exec = "roslaunch SegmentationMapping spot_stereo_py.launch";
+        host = "localhost";
+    }
+}
+
+group "3.rviz" {
+    cmd "rviz_segmap" {
+        exec = "rviz -d config.rviz";
+        host = "localhost";
+    }
+}
+
+script "start_segmap" {
+    start cmd "sim_time_do_second";
+    wait ms 500;
+    start cmd "static_tf2_realsense_camera";
+    wait ms 500;
+    start cmd "segmap";
+    wait ms 1500;
+    # start cmd "rviz_segmap";
+}
