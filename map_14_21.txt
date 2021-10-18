@@ -1,0 +1,64 @@
+IDs and their classes
+0 - road				0 - background
+1 - sidewalk				1 - water
+2 - vegetation				2 - road
+3 - grass				3 - sidewalk
+4 - terrain				4 - terrain
+5 - pole				5 - building
+6 - building				6 - vegetation
+7 - vehicle				7 - vehicle (car)
+8 - human				8 - human (person)
+9 - bike (motor bike not cycle)	9 - bike
+10 - sky				10 - pole
+11 - sign				11 - stair
+12 - water				12 - sign
+13 - stairs				13 - sky
+14 - crosswalk				14 - 
+15 - fallen logs			15 - 
+16 - gravel				16 - 
+17 - rock				17 - 
+18 - other (railings, scaffolding, cycles, manholes)				18 - 
+19 - chopped vegetation/dead grass	19 - 
+20 - dirt pile/sand pile		20 - 
+
+Mapping from 21 classes to 14 classes.
+0 -> 2		road to road
+1 -> 3		sidewalk to sidewalk
+2 -> 6		vegetation to vegetation
+3 -> 6		grass to vegetation
+4 -> 4		terrain to terrain
+5 -> 10	pole to pole
+6 -> 5		building to building
+7 -> 7		vehicle to car
+8 -> 8		human to person
+9 -> 9		bike to bike
+10 -> 13	sky to sky
+11 -> 12	sign to sign
+12 -> 1	water to water
+13 -> 11	stairs to stair	
+14 -> 2	crosswalk to road
+15 -> ? 4	fallen logs to terrain
+16 -> ? 1	gravel to sidewalk (as seen from the images)
+17 -> ? 4	rock to terrain (in most cases rock was found on terrain)
+18 -> ? 10	other to pole (not a good match but atleast avoid it)
+19 -> ? 4	chopped vegetation/dead grass to terrain
+20 -> ? 5	dirt pile/sand pile to terrain (not a good match but big obstruction is a building)
+
+Nothing is mapped to background
+
+Mapping from 14 classes to 21 classes.
+0 -> ? 18	background to other
+1 -> 12	water to water
+2 -> 0		road to road
+3 -> 1		sidewalk to sidewalk
+4 -> 4		terrain to terrain
+5 -> 6		building to building
+6 -> 3		vegetation to vegetation
+7 -> 7		car to vehicle
+8 -> 8		person to human
+9 -> 9		bike to bike
+10 -> 5	pole to pole	
+11 -> 13	stairs to stairs
+12 -> 11	sign to sign
+13 -> 10	sky to sky
+
