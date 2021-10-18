@@ -90,7 +90,7 @@ class SegmentationNode:
 	labeled_img, distribution = self.infer(original_img)
 	for r in range(labeled_img.shape[0]):
           for c in range(labeled_img.shape[1]):
-	    labeled_img[r, c] = label_to_traversability[labeled_img[r, c]]
+              labeled_img[r, c] = label_to_traversability[labeled_img[r, c]]
 	
 	self.save_labeled_img(labeled_img, img_msg.header)
         #self.publish_label_and_distribution(labeled_img, distribution, img_msg.header, lidar_msg.header)
@@ -114,9 +114,9 @@ class SegmentationNode:
         print("Tf init finish")
 
     def save_labeled_img(self, labeled_img, header):
-	timestamp = header.stamp.to_nsec()
-	img_name = self.output_folder + str(timestamp) + ".png"
-	cv2.imwrite(img_name, labeled_img)	
+        timestamp = header.stamp.to_nsec()
+        img_name = self.output_folder + str(timestamp) + ".png"
+        cv2.imwrite(img_name, labeled_img)	
 
     def infer(self, rgb_img):
 
