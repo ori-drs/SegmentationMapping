@@ -92,8 +92,8 @@ class SegmentationNode:
         now  = rospy.Time.now()
         rospy.loginfo("New callback time %i %i, img_time: %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs )
         
-        original_img = self.bridge.imgmsg_to_cv2(img_msg)
-        original_img = cv2.merge([original_img, original_img, original_img])
+        original_img = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="rgb8")
+        
         
         #original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         s_t = time.time()
