@@ -49,6 +49,9 @@ class SegmentationNode:
                                                rospy.get_param("~enable_colored_labeling", False))
         print(self.network_config)
 
+        self.is_input_gray = rospy.get_param("~is_input_gray", default=False)
+        self.rotate = rospy.get_param("~rotate", default=False)
+
         # Choose the desired backbone for the network
         # self.backbone = 'resnet34'
         self.backbone = 'mobilenet'
@@ -92,15 +95,37 @@ class SegmentationNode:
         now  = rospy.Time.now()
         rospy.loginfo("New callback time %i %i, img_time: %i %i", now.secs, now.nsecs, img_msg.header.stamp.secs, img_msg.header.stamp.nsecs )
         
-        original_img = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="rgb8")
+        if self.is_input_gray:
+            original_img = self.bridge.imgmsg_to_cv2(img_msg)
+            # make a fake color image by copying the intensity channel thrice
+            original_img = cv2.merge([original_img, original_img, original_img])
+        else:
+            original_img = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="rgb8")
         
+        if self.rotate:
+            original_img = cv2.rotate(original_img, cv2.ROTATE_90_CLOCKWISE)
         
         #original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         s_t = time.time()
         labeled_img, distribution = self.infer(original_img)
         e_t = time.time()
         print(f"Prediction time: {e_t - s_t} s")
-        self.publish_label_and_distribution(labeled_img, distribution, img_msg.header)
+        
+        distribution_rotated = np.zeros((distribution.shape[1], distribution.shape[0], distribution.shape[2]),
+                                        dtype=np.float)
+        
+        if self.rotate:
+            # undo the rotation of the predicted images
+            labeled_img = cv2.rotate(labeled_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            # distribution = cv2.rotate(distribution, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            
+            for i in range(0, distribution.shape[2]):
+                distribution_rotated[:,:,i] = cv2.rotate(distribution[:,:,i], cv2.ROTATE_90_COUNTERCLOCKWISE)
+        
+        if self.rotate:
+            self.publish_label_and_distribution(labeled_img, distribution_rotated, img_msg.header)
+        else:
+            self.publish_label_and_distribution(labeled_img, distribution, img_msg.header)
         
     def tf_init(self):
         """Initialize the neural network that perfoms semantic segmentation
@@ -140,7 +165,7 @@ class SegmentationNode:
         label_msg = self.bridge.cv2_to_imgmsg(labeled_img, encoding="mono8")
         label_msg.header = header
 
-        # Create a distribution messgae of the probabilities of each class
+        # Create a distribution message of the probabilities of each class
         m_arr = Float32MultiArray()
         m_arr.layout.data_offset = 0
         m_arr.layout.dim = [MultiArrayDimension() for _ in range(3)]
@@ -183,7 +208,7 @@ class SegmentationNode:
         initial_dimensions = rgb_img.shape
         # rgb_img = rgb_img[:, :640, :]
 
-        # Resize the input image if its size does not match the size expected by the network - tejaswid: not sure why this needs to be done
+        # Resize the input image if its size does not match the size expected by the network
         if rgb_img.shape[0] != self.network_config.input_height or rgb_img.shape[1] != self.network_config.input_width:
            rgb = cv2.resize(rgb_img,
                             dsize=(self.network_config.input_width, self.network_config.input_height),
@@ -201,7 +226,7 @@ class SegmentationNode:
         dist_out = dist_out.astype(np.float64)
         label_out = label_out.astype(np.uint8)
 
-        # Convert back into initial size - tejaswid: if the initialial resize is not done, then this can be ignored
+        # Convert back into initial size
         dist_out = cv2.resize(dist_out, dsize=(initial_dimensions[1], initial_dimensions[0]), interpolation=cv2.INTER_NEAREST)
         label_out = cv2.resize(label_out, dsize=(initial_dimensions[1], initial_dimensions[0]), interpolation=cv2.INTER_NEAREST)
         now  = rospy.Time.now()
