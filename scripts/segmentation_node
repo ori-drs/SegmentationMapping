@@ -20,7 +20,7 @@ sm.set_framework('tf.keras')
 from segmentation_models import get_preprocessing
 
 # map label to color
-from label2color import label_to_color
+from label2color import label_to_color, label_to_color_21
 from NeuralNetConfigs import NeuralNetConfigs
 
 # Extra
@@ -235,21 +235,17 @@ class SegmentationNode:
         
         # Generating colored output
         if self.network_config.enable_colored_labeling:
-            colored_label_out = np.zeros(shape=(label_out.shape[0], label_out.shape[1], 3))
-            for i in range(len(colored_label_out)):
-                for j in range(len(colored_label_out[i])):
-                    colored_label_out[i][j] = np.array(label_to_color[label_out[i][j]]) # convert labels into color
-            colored_label_out = colored_label_out.astype(np.uint8) # turn into integer
-            image = PIL.Image.fromarray(colored_label_out, 'RGB')   # TODO: remove dependence on PIL. Replace it with Opencv Mat for consistency.
-            image_msg = Image()
-            image_msg.header.stamp = rospy.Time.now()
-            image_msg.height = image.height
-            image_msg.width = image.width
-            image_msg.encoding = 'rgb8'
-            image_msg.is_bigendian = False
-            image_msg.step = 3 * image.width
-            image_msg.data = np.array(image).tobytes()
-            self.colored_img_pub.publish(image_msg)
+            colored_label_out = np.zeros(shape=(label_out.shape[0], label_out.shape[1], 3), dtype=np.uint8)
+            for i in range(0, label_out.shape[0]):
+                for j in range(0, label_out.shape[1]):
+                    colored_label_out[i, j, :] = label_to_color_21[label_out[i, j]]
+                    
+            colored_image = cv2.cvtColor(colored_label_out, cv2.COLOR_BGR2RGB)
+            
+            colored_label_msg = self.bridge.cv2_to_imgmsg(colored_image, encoding="passthrough")
+            colored_label_msg.header.stamp = rospy.Time.now()
+            
+            self.colored_img_pub.publish(colored_label_msg)
 
         return label_out, dist_out
 
