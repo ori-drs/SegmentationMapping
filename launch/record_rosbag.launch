@@ -1,0 +1,52 @@
+<launch>
+
+	<!-- We can record all topics at 30Hz since this is the 0.4MP version -->
+	<node name="record_rosbag" pkg="rosbag" type="record" output="screen"
+    args=" --lz4 -o $(env HOME)/
+    --chunksize=15360 --split --size=10240 --buffsize=2048
+
+    /camera/aligned_depth_to_color/camera_info
+    /camera/aligned_depth_to_color/image_raw
+    /camera/color/image_raw
+
+    /icp_odometry/corrected_pose
+
+    /joint_states
+
+    /labeled_pc_map_node/octomap_out
+
+    /os_cloud_node/imu
+    /os_cloud_node/points
+    /os_node/imu_packets
+    /os_node/lidar_packets
+
+    /pronto_slam/pose_graph
+    /pronto_slam/slam_poses
+
+    /spot/camera/frontleft/camera_info
+    /spot/camera/frontleft/compressed
+    /spot/camera/frontright/camera_info
+    /spot/camera/frontright/compressed
+    /spot/depth/frontleft/camera_info
+    /spot/depth/frontleft/image
+    /spot/depth/frontright/camera_info
+    /spot/depth/frontright/image
+    /spot/depth/left/camera_info
+    /spot/depth/left/image
+    /spot/depth/right/camera_info
+    /spot/depth/right/image
+    /spot/depth/back/camera_info
+    /spot/depth/back/image
+    /spot/odometry
+    /spot/status/battery_states
+    /spot/status/behavior_faults
+    /spot/status/estop
+    /spot/status/feet
+    /spot/status/system_faults
+
+    /tf
+    /tf_static
+    ">
+  </node>
+
+</launch>
