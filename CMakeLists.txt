@@ -25,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   rospy
   roscpp
-  #octomap
+  # octomap
   sensor_msgs
   geometry_msgs
   nav_msgs
@@ -193,8 +193,6 @@ ${OCTOMAP_INCLUDE_DIRS}
 ${octomap_ros__INCLUDE_DIRS}
 )
 
-
-
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/segmentation_projection.cpp
@@ -208,11 +206,11 @@ ${octomap_ros__INCLUDE_DIRS}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(labeled_pc_map_node src/labeled_pc_map_node.cpp)
+add_executable(labeled_pc_map_node src/labeled_pc_map_node.cpp src/semantic_octree.cpp)
 #add_executable(nclt_map_node      src/rvsm_nclt_node.cpp)
 #add_executable(query_semantic_tree src/query_semantic_tree.cpp)
-add_executable(stereo_segmentation_node src/stereo_segmentation_node.cpp)
-add_executable(lidar_projection_node src/lidar_projection_node.cpp)
+add_executable(stereo_segmentation_node src/stereo_segmentation_node.cpp src/semantic_octree.cpp)
+add_executable(lidar_projection_node src/lidar_projection_node.cpp src/semantic_octree.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use

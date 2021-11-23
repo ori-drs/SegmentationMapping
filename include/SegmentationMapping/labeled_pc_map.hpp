@@ -48,7 +48,7 @@
 #include <octomap/octomap.h>
 #include <octomap/OcTree.h>
 #include <octomap/ColorOcTree.h>
-#include <octomap/SemanticOcTree.h>
+// #include <octomap/SemanticOcTree.h>
 #include <octomap_msgs/conversions.h>
 #include <octomap_msgs/Octomap.h>
 #include <octomap_msgs/GetOctomap.h>
@@ -56,7 +56,7 @@
 
 // for the PointSegmentedDistribution
 #include "PointSegmentedDistribution.hpp"
-
+#include "semantic_octree.hpp"
 // compute linear index for given map coords
 #define MAP_IDX(sx, i, j) ((sx) * (j) + (i))
 
@@ -225,7 +225,7 @@ namespace SegmentationMapping {
         label2color[20] = std::make_tuple(45, 149, 238);
 
 
-        octree_ptr_ = std::make_shared<octomap::SemanticOcTree>(octomap::SemanticOcTree(octomap_resolution_,
+        octree_ptr_ = std::make_shared<SegmentationMapping::SemanticOcTree>(SegmentationMapping::SemanticOcTree(octomap_resolution_,
                                                                                         NUM_CLASS,
                                                                                         label2color));
         octomap_publisher_ = pnh.advertise<octomap_msgs::Octomap>("octomap_out", 10);
@@ -248,7 +248,7 @@ namespace SegmentationMapping {
                             double stamp, bool is_write_centroids);
     void FuseMapIncremental(const pcl::PointCloud<pcl::PointSegmentedDistribution<NUM_CLASS>> & pc,
                             const Eigen::Affine3d & pose_at_pc);
-    const std::shared_ptr<octomap::SemanticOcTree> get_octree_ptr() const { return octree_ptr_; }
+    const std::shared_ptr<SegmentationMapping::SemanticOcTree> get_octree_ptr() const { return octree_ptr_; }
 
   
   private:
@@ -306,7 +306,7 @@ namespace SegmentationMapping {
 
 
     // for semantic octomap
-    std::shared_ptr<octomap::SemanticOcTree> octree_ptr_;
+    std::shared_ptr<SegmentationMapping::SemanticOcTree> octree_ptr_;
     std::unordered_set<int> labels_to_ignore;
     std::unordered_set<int> target_labels;
     int octomap_frame_counter_;
@@ -443,7 +443,7 @@ namespace SegmentationMapping {
 
   template<unsigned int NUM_CLASS>
   static void update_nearby_voxels_in_semantic_octree(const pcl::PointSegmentedDistribution<NUM_CLASS> & labeled_pt,
-                                                      octomap::SemanticOcTree & octree_semantic,
+                                                      SegmentationMapping::SemanticOcTree & octree_semantic,
                                                       float resolution) {
     static std::vector <std::vector <float> > neighbor_offsets {
       {0,0,0},
@@ -460,7 +460,7 @@ namespace SegmentationMapping {
       float y = labeled_pt.y + offset[1];
       float z = labeled_pt.z + offset[2];
 
-      octomap::SemanticOcTreeNode * result = octree_semantic.updateNode(x, y, z, true); // integrate 'occupied' measurement
+      SegmentationMapping::SemanticOcTreeNode * result = octree_semantic.updateNode(x, y, z, true); // integrate 'occupied' measurement
       if (result) {
         octree_semantic.averageNodeSemantics(result, label_dist );
       }
@@ -471,7 +471,7 @@ namespace SegmentationMapping {
   
   template<unsigned int NUM_CLASS>
   static void SemanticOcTree3d_to_OccupancyGrid2d(const pcl::PointCloud<pcl::PointSegmentedDistribution<NUM_CLASS>> & transformed_pc,
-                                                  const octomap::SemanticOcTree & octree,
+                                                  const SegmentationMapping::SemanticOcTree & octree,
                                                   const std::unordered_set<int> & target_labels,
                                                   nav_msgs::OccupancyGrid & occupancy_grid
                                                   ){
@@ -481,7 +481,7 @@ namespace SegmentationMapping {
       float y = p.y;
       float z = p.z; // for NCLT only
       octomap::point3d query ( x,  y, z);
-      const octomap::SemanticOcTreeNode* node = octree.search(query);
+      const SegmentationMapping::SemanticOcTreeNode* node = octree.search(query);
       if (node  && node->getOccupancy() > 0.5 && node->isSemanticsSet()) {
         //auto semantics = node->getSemantics();
         int label = node->getSemanticLabel();
@@ -569,7 +569,7 @@ namespace SegmentationMapping {
           octree_ptr_->setBBXMin(bbx_min);
           octree_ptr_->setBBXMax(bbx_max);
 
-          for(octomap::SemanticOcTree::leaf_iterator it = octree_ptr_->begin_leafs(),
+          for(SegmentationMapping::SemanticOcTree::leaf_iterator it = octree_ptr_->begin_leafs(),
           end=octree_ptr_->end_leafs(); it!= end; ++it)    // loop through all leaves
           {
             if (!octree_ptr_->inBBX(it.getCoordinate())){
