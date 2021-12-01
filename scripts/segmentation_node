@@ -10,6 +10,7 @@ from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 from SegmentationMapping.msg import ImageLabelDistribution
+from SegmentationMapping.msg import IndoorState
 
 # tensorflow
 import tensorflow as tf
@@ -69,6 +70,8 @@ class SegmentationNode:
                                                Image, queue_size=5)
         self.distribution_pub = rospy.Publisher("~distribution_topic",
                                                 ImageLabelDistribution, queue_size=5)
+        self.indoor_state_pub = rospy.Publisher("~indoor_state", IndoorState, queue_size=5)
+        
         self.distribution_at_lidar_time_pub = rospy.Publisher("~distribution_at_lidar_time_topic",
                                                               ImageLabelDistribution, queue_size=5)
         #self.sub = rospy.Subscriber('~color_topic', Image, self.callback)
@@ -186,6 +189,12 @@ class SegmentationNode:
         # Publish the images
         self.labeled_img_pub.publish(label_msg)
         self.distribution_pub.publish(distribution_msg)
+        
+        # publish a bool indicating indoor or outdoor
+        indoor_state = IndoorState()
+        indoor_state.header = header
+        indoor_state.is_indoor = True
+        self.indoor_state_pub.publish()
 
         #if lidar_header is not None:
         #    distribution_msg.header.stamp = lidar_header.stamp
