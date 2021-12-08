@@ -207,11 +207,12 @@ namespace SegmentationMapping
         SemanticOcTree *create() const { return new SemanticOcTree(resolution); }
 
         /**
-         * @brief Get the Tree Type object
+         * @brief Get the Tree Type object.
+         * Setting this to ColorOcTree for the RViz plugin to recognize it.
          * 
-         * @return std::string "SemanticOcTree"
+         * @return std::string "ColorOcTree"
          */
-        std::string getTreeType() const { return "SemanticOcTree"; }
+        std::string getTreeType() const { return "ColorOcTree"; }
 
         /**
          * @brief Prunes a node when it is collapsible. This overloaded version
