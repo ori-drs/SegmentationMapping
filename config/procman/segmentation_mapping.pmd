@@ -1,0 +1,61 @@
+group "0.sim_time_true" {
+    cmd "sim_time_do_second" {
+        exec = "rosparam set use_sim_time true";
+        host = "localhost";
+    }
+}
+
+group "1.static_tf" {
+    cmd "static_tf2_realsense_camera" {
+        exec = "rosrun tf2_ros static_transform_publisher 0 0 0 0 0 0 1 realsense_parent camera_link";
+        host = "localhost";
+    }
+}
+
+group "2.realsense_align" {
+    cmd "realsense_align" {
+        exec = "roslaunch realsense_utils align_depth_to_color.launch";
+        host = "localhost";
+    }
+}
+
+group "3.segmap" {
+    cmd "segmap_rooster" {
+        exec = "roslaunch SegmentationMapping spot_stereo_py.launch";
+        host = "localhost";
+    }
+
+    cmd "segmap_frontleft" {
+        exec = "roslaunch SegmentationMapping spot_frontleft_py.launch";
+        host = "localhost";
+    }
+}
+
+group "4.rviz" {
+    cmd "rviz_segmap" {
+        exec = "roslaunch SegmentationMapping view_sm.launch";
+        host = "localhost";
+    }
+}
+
+script "start_segmap_rooster" {
+    start group "0.sim_time_true";
+    wait ms 500;
+    start group "1.static_tf";
+    wait ms 500;
+    start cmd "segmap_rooster";
+    wait ms 1500;
+    #start group "4.rviz";
+}
+
+script "start_segmap_frontleft" {
+    start group "0.sim_time_true";
+    wait ms 500;
+    start group "1.static_tf";
+    wait ms 500;
+    start group "2.realsense_align";
+    wait ms 500;
+    start cmd "segmap_frontleft";
+    wait ms 1500;
+    start group "4.rviz";
+}

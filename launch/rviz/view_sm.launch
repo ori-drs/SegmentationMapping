@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+
+  <node name="sm_rviz" pkg="rviz" type="rviz" args="-d $(find SegmentationMapping)/config/rviz/config.rviz"  />
+
+</launch>
