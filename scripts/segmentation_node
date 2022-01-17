@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 
+# import os
+# import sys
+# sys.path.append(os.path.join(os.path.expanduser('~'), "sm_ws/src/classification_models"))
+# sys.path.append(os.path.join(os.path.expanduser('~'), "sm_ws/src/segmentation_models"))
+
 import cv2
 import time
 import numpy as np
@@ -52,6 +57,10 @@ class SegmentationNode:
 
         self.is_input_gray = rospy.get_param("~is_input_gray", default=False)
         self.rotate = rospy.get_param("~rotate", default=False)
+        self.flip = rospy.get_param("~flip", default=False)
+
+        if self.rotate: 
+            self.flip = False
 
         # Choose the desired backbone for the network
         # self.backbone = 'resnet34'
@@ -107,6 +116,8 @@ class SegmentationNode:
         
         if self.rotate:
             original_img = cv2.rotate(original_img, cv2.ROTATE_90_CLOCKWISE)
+        elif self.flip: 
+            original_img = cv2.rotate(original_img, cv2.ROTATE_180)
         
         #original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         s_t = time.time()
@@ -114,18 +125,27 @@ class SegmentationNode:
         e_t = time.time()
         print(f"Prediction time: {e_t - s_t} s")
         
-        distribution_rotated = np.zeros((distribution.shape[1], distribution.shape[0], distribution.shape[2]),
-                                        dtype=np.float)
+        distribution_rotated = None
         
         if self.rotate:
+            distribution_rotated = np.zeros((distribution.shape[1], distribution.shape[0], distribution.shape[2]), dtype=np.float)
             # undo the rotation of the predicted images
             labeled_img = cv2.rotate(labeled_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
             # distribution = cv2.rotate(distribution, cv2.ROTATE_90_COUNTERCLOCKWISE)
             
             for i in range(0, distribution.shape[2]):
                 distribution_rotated[:,:,i] = cv2.rotate(distribution[:,:,i], cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+        if self.flip:
+            distribution_rotated = np.zeros((distribution.shape[0], distribution.shape[1], distribution.shape[2]), dtype=np.float)
+            # undo the rotation of the predicted images
+            labeled_img = cv2.rotate(labeled_img, cv2.ROTATE_180)
+            # distribution = cv2.rotate(distribution, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            
+            for i in range(0, distribution.shape[2]):
+                distribution_rotated[:,:,i] = cv2.rotate(distribution[:,:,i], cv2.ROTATE_180)
         
-        if self.rotate:
+        if self.rotate or self.flip:
             self.publish_label_and_distribution(labeled_img, distribution_rotated, img_msg.header)
         else:
             self.publish_label_and_distribution(labeled_img, distribution, img_msg.header)

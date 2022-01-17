@@ -13,36 +13,36 @@
 
   <!-- <rosparam file="$(find SegmentationMapping)/data/nclt_04_29/label2color.yaml" command="load"/> -->
 
-
   <node pkg="SegmentationMapping" type="segmentation_node" name="segmentation_node" output="log" required="true">
     <!--<param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/optimized_mobilenet_const_nclt_2019_06_11.pb"/>  -->
     <!-- <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/mobilenet_nclt/optimized_graph_mobilenet_trt32_2019-06-15.pb"/>  -->
     <!-- <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/extended_nclt/model_backup_4.hdf5"/>  -->
-    <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/extended_nclt/extended_nclt_trained_weights.hdf5"/>
+    <!-- <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/extended_nclt/extended_nclt_trained_weights.hdf5"/> -->
+    <param name="neural_net_graph" type="str" value="$(find SegmentationMapping)/config/extended_nclt/gray_21_copy_rgb_jade_final.hdf5"/>
     <param name="network_image_input_tensor" type="str" value="network/input/Placeholder:0"/>
     <param name="network_distribution_output_tensor" type="str" value="network/output/ClassDistribution:0"/>
     <param name="network_label_output_tensor" type="str" value="network/output/ClassIndexPrediction:0"/>
     <!-- <param name="num_classes" type="int" value="14" /> -->
     <param name="num_classes" type="int" value="21" />
-    <param name="skip_input_img_freq" type="int"    value="25" /> <!-- use every k frames -->>
+    <param name="skip_input_img_freq" type="int"    value="15" /> <!-- use every k frames -->>
     <param name="neural_net_input_width" type="int" value="640"/>
     <param name="neural_net_input_height" type="int" value="480"/>
     <param name="lidar_topic" type="str" value="/os_cloud_node/points_timestamp_corrected"/>
     <param name="enable_colored_labeling" type="bool" value="true" />
+    <param name="is_input_gray" type="bool" value="true"/>
     <param name="rotate" type="bool" value="false"/>
-    <param name="flip" type="bool" value="false"/>
-
+    <param name="flip" type="bool" value="true"/>
 
     <!-- input topic -->
-    <remap from="~color_topic"        to="/camera/color/image_raw" />
-    <remap from="~depth_topic"        to="/camera/aligned_depth_to_color/image_raw" />
+    <remap from="~color_topic"        to="/other" />
+    <remap from="~depth_topic"        to="/depth_aligned_to_other" />
 
   </node>
 
    <node pkg="SegmentationMapping" type="stereo_segmentation_node"  name="stereo_segmentation_node" output="log" required="true"  >
-     <param name="color_topic"        type="string" value="/camera/color/image_raw" />
-     <param name="depth_topic"        type="string" value="/camera/aligned_depth_to_color/image_raw" />
-     <param name="depth_cam_topic"    type="string" value="/camera/aligned_depth_to_color/camera_info" />
+     <param name="color_topic"        type="string" value="/other" />
+     <param name="depth_topic"        type="string" value="/depth_aligned_to_other" />
+     <param name="depth_cam_topic"    type="string" value="/spot/camera/right/camera_info" />
      <param name="label_topic"        type="string" value="/segmentation_node/label_topic" />
      <param name="distribution_topic" type="string" value="/segmentation_node/distribution_topic" />
      <param name="skip_every_k_frame" type="int"    value="1" />
@@ -85,10 +85,9 @@
     <param name="octomap_prob_hit" type="double" value="0.55" />
     <param name="octomap_prob_miss" type="double" value="0.3" />
     <param name="octomap_occupy_thresh" type="double" value="0.35" />
-    <param name="bounding_box_size" type="double" value="15.0" />
+    <param name="bounding_box_size" type="double" value="7.0" />
     <param name="octomap_cropping_enabled" type="bool" value="true"/>
   </node>
   
-
-
 </launch>
+
