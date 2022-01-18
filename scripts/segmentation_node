@@ -89,6 +89,8 @@ class SegmentationNode:
         self.skip_img_freq = rospy.get_param('~skip_input_img_freq')
         self.counter = 0
         self.bridge = CvBridge()
+        
+        self.outdoor_threshold = rospy.get_param("~outdoor_threshold", default=0.3)
 
     def callback(self, img_msg):
         """Call the inference script on the image when a ros image message arrives
@@ -213,7 +215,7 @@ class SegmentationNode:
         # publish a bool indicating indoor or outdoor
         indoor_state = IndoorState()
         indoor_state.header = header
-        indoor_state.is_indoor = True
+        indoor_state.is_indoor = self.compute_indoor_state(distribution)
         self.indoor_state_pub.publish()
 
         #if lidar_header is not None:
@@ -223,6 +225,29 @@ class SegmentationNode:
         now  = rospy.Time.now()
         rospy.loginfo("End callback at time %i %i\n\n", now.secs, now.nsecs)
 
+    def compute_indoor_state(self, distribution):
+        is_indoor = True
+        hist_predictions = np.zeros([1, distribution.shape[2]], np.int)
+        
+        for i in range(0, distribution.shape[0]):
+            for j in range(0, distribution.shape[1]):
+                k = np.argmax(distribution[i, j, :])
+                hist_predictions[k] += 1
+        
+        # count labels that appear only outdoors
+        outdoor_label_ids = [2, 3, 4, 7, 9, 10, 12, 14, 15, 16, 17, 19, 20]
+        outdoor_label_count = np.sum(hist_predictions[outdoor_label_ids])
+        percentage_outdoor_labels = outdoor_label_count / np.sum(hist_predictions)
+        
+        if percentage_outdoor_labels > self.outdoor_threshold:
+            is_indoor = False
+        else:
+            is_indoor = True
+        
+        return is_indoor
+        
+        
+    
     def infer(self, rgb_img):
         """Infers semantic labels for the input color image
 
