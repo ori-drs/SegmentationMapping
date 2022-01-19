@@ -32,6 +32,7 @@
     <param name="is_input_gray" type="bool" value="true"/>
     <param name="rotate" type="bool" value="false"/>
     <param name="flip" type="bool" value="false"/>
+    <param name="outdoor_threshold" type="float" value="0.3"/>
 
     <!-- input topic -->
     <remap from="~color_topic"        to="/other" />
