@@ -232,17 +232,33 @@ class SegmentationNode:
         for i in range(0, distribution.shape[0]):
             for j in range(0, distribution.shape[1]):
                 k = np.argmax(distribution[i, j, :])
-                hist_predictions[k] += 1
+                hist_predictions[0, k] += 1
         
         # count labels that appear only outdoors
-        outdoor_label_ids = [2, 3, 4, 7, 9, 10, 12, 14, 15, 16, 17, 19, 20]
-        outdoor_label_count = np.sum(hist_predictions[outdoor_label_ids])
-        percentage_outdoor_labels = outdoor_label_count / np.sum(hist_predictions)
+        outdoor_label_ids = [2, 3, 4, 7, 9, 12, 14, 15, 16, 17, 19, 20]
+        outdoor_label_count = np.sum(hist_predictions[0, outdoor_label_ids])
+        percentage_outdoor_labels = outdoor_label_count / np.sum(hist_predictions[0, :])
+        road_and_grass_label_ids = [0, 1, 2, 3]
+        percentage_road_and_grass = np.sum(hist_predictions[0, road_and_grass_label_ids]) / np.sum(hist_predictions[0, :])
+        # rospy.logwarn("+++++++++++++++++++++++++++++++++++\nNew Image: ")
+        # rospy.logwarn("Outdoor label percentage %f", percentage_outdoor_labels)
+        # rospy.logwarn("Vegetations percentage %f", hist_predictions[0, 2]/np.sum(hist_predictions[0, :]) + hist_predictions[0, 3]/np.sum(hist_predictions[0, :]))
+        # rospy.logwarn("Road percentage %f", hist_predictions[0, 0]/np.sum(hist_predictions[0, :]) + hist_predictions[0, 1]/np.sum(hist_predictions[0, :]))
+        # rospy.logwarn("Building percentage %f", hist_predictions[0, 6]/np.sum(hist_predictions[0, :]))
+
+        # for i in range(0, hist_predictions.shape[1]):
+        #     rospy.logwarn("%i: %f", i, hist_predictions[0, i]/np.sum(hist_predictions[0, :]))
         
         if percentage_outdoor_labels > self.outdoor_threshold:
             is_indoor = False
         else:
-            is_indoor = True
+            if percentage_road_and_grass > 0.25: 
+                is_indoor = False
+            else: 
+                is_indoor = True
+
+        rospy.logwarn("+++++++++++++++++++++++++++++++++++\nNew Image: ")
+        rospy.logwarn(is_indoor)
         
         return is_indoor
         
