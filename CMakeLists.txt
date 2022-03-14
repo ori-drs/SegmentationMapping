@@ -37,6 +37,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   image_geometry
   message_generation
+  image_transport
 )
 
 
@@ -214,6 +215,9 @@ add_executable(labeled_pc_map_node src/labeled_pc_map_node.cpp)
 #add_executable(query_semantic_tree src/query_semantic_tree.cpp)
 add_executable(stereo_segmentation_node src/stereo_segmentation_node.cpp)
 add_executable(lidar_projection_node src/lidar_projection_node.cpp)
+add_executable(overlay_lidar_camera_node src/overlay_lidar_camera_node.cpp src/overlay_lidar_camera.cpp)
+add_executable(overlay_lidar_multi_camera_node src/overlay_lidar_multi_camera_node.cpp src/overlay_lidar_multi_camera.cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -226,6 +230,9 @@ add_executable(lidar_projection_node src/lidar_projection_node.cpp)
 
 add_dependencies(stereo_segmentation_node ${catkin_EXPORTED_TARGETS})
 add_dependencies(lidar_projection_node ${catkin_EXPORTED_TARGETS})
+add_dependencies(overlay_lidar_camera_node ${catkin_EXPORTED_TARGETS})
+add_dependencies(overlay_lidar_multi_camera_node ${catkin_EXPORTED_TARGETS})
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(labeled_pc_map_node
   ${OCTOMAP_LIBRARIES}
@@ -257,6 +264,18 @@ target_link_libraries(stereo_segmentation_node #  PRIVATE TensorFlow_DEP
 )
 
 target_link_libraries(lidar_projection_node
+  ${EIGEN_INCLUDE_DIR}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+)
+
+target_link_libraries(overlay_lidar_camera_node
+  ${EIGEN_INCLUDE_DIR}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+)
+
+target_link_libraries(overlay_lidar_multi_camera_node
   ${EIGEN_INCLUDE_DIR}
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}

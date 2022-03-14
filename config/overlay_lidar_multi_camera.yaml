@@ -1,0 +1,29 @@
+# cameras
+image_topics: ["/camera/infra1/image_rect_raw",
+               "/camera_left/infra1/image_rect_raw", 
+               "/camera_right/infra1/image_rect_raw"]
+images_compressed: [true, true, true]
+camera_frame_names: ["camera_infra1_optical_frame",
+                     "camera_left_infra1_optical_frame",
+                     "camera_right_infra1_optical_frame"]
+
+camera_info_topics: ["/camera/infra1/camera_info",
+                    "/camera_left/infra1/camera_info",
+                    "/camera_right/infra1/camera_info"]
+
+# Lidar
+lidar_topic: "/os_cloud_node/points"
+lidar_frame_name: "os_sensor"
+
+# transformation from lidar to camera frame
+# front
+Cf_r_CfL: [0.025, -0.014, -0.084] # tx ty tz
+Cf_q_CfL: [0.653, -0.271, 0.271, 0.653] # qx qy qz qw(real)
+
+# left
+Cl_r_ClL: [0.018, -0.014, -0.078] # tx ty tz
+Cl_q_ClL: [0.653, 0.271, -0.271, 0.653] # qx qy qz qw(real)
+
+# right
+Cr_r_CrL: [0.018, -0.014, -0.078] # tx ty tz
+Cr_q_CrL: [-0.271, 0.653, -0.653, -0.271] # qx qy qz qw(real)

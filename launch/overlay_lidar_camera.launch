@@ -1,0 +1,7 @@
+<launch>
+  <arg name="config_file" default="$(find SegmentationMapping)/config/overlay_lidar_camera.yaml"/>
+
+  <node pkg="SegmentationMapping" type="overlay_lidar_camera_node" name="overlay_lidar_camera_node" output="screen">
+    <rosparam file="$(arg config_file)"/>
+  </node>
+</launch>
